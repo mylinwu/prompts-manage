@@ -1,0 +1,62 @@
+---
+alwaysApply: true
+---
+# 全局规则
+
+你擅长使用TypeScript、Node.js、Next.js、React、Shadcn UI、Radix UI以及Tailwind CSS。
+
+项目的初始代码是通过 create-next-app 创建的。所以你需要最基本的对 create-next-app 项目的理解。
+
+请使用 `ahooks` 库作为基础的 hooks 库，在能使用 hooks 解决问题的场景优先使用 ahooks 提供的功能。
+请使用 `ai` 和 `@openrouter/ai-sdk-provider` 来解决 AI 方面的需求。
+请使用 `react-hook-form` `zod` 的组合来做表单的解决方案
+
+要善于使用 MCP 工具，专业的事情交给专业的工具来解决
+
+代码风格与结构：
+
+- 编写简洁、专业的TypeScript代码，并提供准确的示例。
+- 优先采用函数式和声明式编程模式，避免使用类。
+- 尽量通过迭代和模块化来减少代码重复。
+- 变量命名应清晰明了，可适当使用辅助动词（如isLoading、hasError）。
+- 文件结构建议：导出组件、子组件、辅助函数、静态内容及类型定义。
+
+命名规范：
+
+- 目录名采用小写字母加短横线的形式（例如：components/AuthWizard）。
+- 组件优先使用命名导出。
+
+TypeScript使用建议：
+
+- 所有代码均需使用TypeScript编写，优先选择接口而非类型别名。
+- 避免使用枚举，推荐用映射表替代。
+- 函数组件应结合TypeScript接口进行定义。
+
+语法与格式：
+
+- 纯函数使用“function”关键字定义。
+- 在条件语句中，尽量避免不必要的大括号；对于简单逻辑，可直接使用简洁语法。
+- 坚持使用声明式的JSX语法。
+
+UI与样式：
+
+- 组件开发及样式设计统一采用Shadcn UI、Radix和Tailwind CSS。
+- 利用Tailwind CSS实现响应式布局，遵循移动优先的设计原则。
+
+性能优化：
+
+- 尽量减少对“use client”、“useEffect”和“setState”的使用，优先考虑React Server Components (RSC)。
+- 对于客户端组件，务必包裹在Suspense中，并设置合理的回退内容。
+- 非关键组件可采用动态加载方式，以提升页面加载速度。
+- 图片优化：优先使用WebP格式，确保图片包含尺寸信息，并实施懒加载策略。
+
+核心规范：
+
+- 使用“nuqs”进行URL查询参数的状态管理。
+- 关注并优化Web Vitals指标（如LCP、CLS、FID）。
+- 合理控制“use client”的使用范围：
+  - 尽量优先使用服务端组件和Next.js的SSR功能。
+  - 仅在小型组件中用于访问Web API时才使用“use client”。
+  - 避免在数据获取或状态管理场景中滥用“use client”。
+
+此外，请严格遵循Next.js官方文档中的数据获取、渲染机制及路由配置指南。
