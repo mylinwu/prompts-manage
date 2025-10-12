@@ -41,8 +41,7 @@ export default function Navigation() {
 								: "text-slate-600"
 						)}
 					>
-						<span className="hidden sm:inline">{item.label}</span>
-						<span className="sm:hidden">{item.label.replace('我的提示词', '我的').replace('提示词市场', '市场')}</span>
+						<span>{item.label}</span>
 						{isActive && (
 							<span className="absolute -bottom-[14px] md:-bottom-[14px] left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600" />
 						)}

@@ -202,15 +202,17 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
         <DialogFooter className="mt-4 md:mt-6 flex-col sm:flex-row gap-2">
           <div className="flex flex-col sm:flex-row gap-2 w-full">
             <div className="flex gap-2 flex-1">
-              <Button 
-                variant="outline" 
-                onClick={() => onVersionHistory?.(prompt?.id || '')} 
-                disabled={loading}
-                className="flex-1 sm:flex-initial"
-              >
-                <History className="w-4 h-4 mr-2" />
-                版本历史
-              </Button>
+              {!showCreateVersion && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => onVersionHistory?.(prompt?.id || '')} 
+                  disabled={loading}
+                  className="flex-1 sm:flex-initial"
+                >
+                  <History className="w-4 h-4 mr-2" />
+                  版本历史
+                </Button>
+              )}
               {!showCreateVersion ? (
                 <Button 
                   variant="outline" 
