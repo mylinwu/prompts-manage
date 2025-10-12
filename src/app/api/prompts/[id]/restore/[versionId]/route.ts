@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; versionId: string } }
+  { params }: { params: Promise<{ id: string; versionId: string }> }
 ) {
   try {
     const session = await getAuthSession();
@@ -14,10 +14,11 @@ export async function POST(
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
+    const { id, versionId } = await params;
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
     const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(params.id),
+      _id: new ObjectId(id),
       userId: session.user.id,
     });
 
@@ -28,8 +29,8 @@ export async function POST(
     // 获取版本数据
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
     const version = await versionsCollection.findOne({
-      _id: new ObjectId(params.versionId),
-      promptId: params.id,
+      _id: new ObjectId(versionId),
+      promptId: id,
     });
 
     if (!version) {
@@ -38,7 +39,7 @@ export async function POST(
 
     // 恢复提示词内容
     await promptsCollection.updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       {
         $set: {
           name: version.name,
@@ -48,7 +49,7 @@ export async function POST(
       }
     );
 
-    const updated = await promptsCollection.findOne({ _id: new ObjectId(params.id) });
+    const updated = await promptsCollection.findOne({ _id: new ObjectId(id) });
 
     return NextResponse.json({
       id: updated!._id.toString(),

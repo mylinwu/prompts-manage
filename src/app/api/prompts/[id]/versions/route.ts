@@ -4,17 +4,18 @@ import { Prompt, PromptVersion } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
+    const { id } = await params;
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
     const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(params.id),
+      _id: new ObjectId(id),
       userId: session.user.id,
     });
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
     const versions = await versionsCollection
-      .find({ promptId: params.id })
+      .find({ promptId: id })
       .sort({ version: -1 })
       .toArray();
 
@@ -46,20 +47,21 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { description } = body;
 
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
     const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(params.id),
+      _id: new ObjectId(id),
       userId: session.user.id,
     });
 
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // 获取当前最大版本号
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
     const lastVersion = await versionsCollection
-      .find({ promptId: params.id })
+      .find({ promptId: id })
       .sort({ version: -1 })
       .limit(1)
       .toArray();
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const newVersion = lastVersion.length > 0 ? lastVersion[0].version + 1 : 1;
 
     const versionData: Omit<PromptVersion, '_id'> = {
-      promptId: params.id,
+      promptId: id,
       version: newVersion,
       name: prompt.name,
       prompt: prompt.prompt,

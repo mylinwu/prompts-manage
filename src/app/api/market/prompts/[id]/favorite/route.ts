@@ -4,17 +4,18 @@ import { Favorite, MarketPrompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ isFavorited: false });
     }
 
+    const { id } = await params;
     const collection = await getCollection<Favorite>('favorites');
     const favorite = await collection.findOne({
       userId: session.user.id,
-      marketPromptId: params.id,
+      marketPromptId: id,
     });
 
     return NextResponse.json({ isFavorited: !!favorite });
@@ -24,27 +25,28 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
+    const { id } = await params;
     const favoritesCollection = await getCollection<Favorite>('favorites');
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
 
     // 检查是否已收藏
     const existing = await favoritesCollection.findOne({
       userId: session.user.id,
-      marketPromptId: params.id,
+      marketPromptId: id,
     });
 
     if (existing) {
       // 取消收藏
       await favoritesCollection.deleteOne({ _id: existing._id });
       await marketCollection.updateOne(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(id) },
         { $inc: { favoriteCount: -1 } }
       );
       return NextResponse.json({ isFavorited: false });
@@ -52,11 +54,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // 添加收藏
       await favoritesCollection.insertOne({
         userId: session.user.id,
-        marketPromptId: params.id,
+        marketPromptId: id,
         createdAt: new Date(),
       } as Favorite);
       await marketCollection.updateOne(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(id) },
         { $inc: { favoriteCount: 1 } }
       );
       return NextResponse.json({ isFavorited: true });

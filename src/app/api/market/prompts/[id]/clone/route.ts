@@ -4,15 +4,16 @@ import { MarketPrompt, Prompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
+    const { id } = await params;
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
-    const marketPrompt = await marketCollection.findOne({ _id: new ObjectId(params.id) });
+    const marketPrompt = await marketCollection.findOne({ _id: new ObjectId(id) });
 
     if (!marketPrompt) {
       return NextResponse.json({ error: '市场提示词不存在' }, { status: 404 });
