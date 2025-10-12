@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from '@/components/ui/button';
 import { useRequest } from 'ahooks';
 import { Upload } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
 
 interface ImportDialogProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface ImportDialogProps {
 }
 
 export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProps) {
+  const { showAlert } = useAlert();
   const [fileContent, setFileContent] = useState<unknown[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,12 +36,12 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
     {
       manual: true,
       onSuccess: (data) => {
-        alert(data.message || '导入成功');
+        showAlert({ description: data.message || '导入成功' });
         onSuccess?.();
         handleClose();
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -61,12 +63,12 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
       try {
         const json = JSON.parse(event.target?.result as string);
         if (!Array.isArray(json)) {
-          alert('文件格式错误：必须是数组格式');
+          showAlert({ description: '文件格式错误：必须是数组格式' });
           return;
         }
         setFileContent(json);
       } catch {
-        alert('文件解析失败：请确保是有效的 JSON 格式');
+        showAlert({ description: '文件解析失败：请确保是有效的 JSON 格式' });
       }
     };
     reader.readAsText(file);

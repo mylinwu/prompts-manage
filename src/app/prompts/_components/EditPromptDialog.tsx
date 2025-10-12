@@ -10,6 +10,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { MultiSelect } from '@/components/ui/multi-select';
 import { PromptData } from '@/types/prompt';
 import { useRequest } from 'ahooks';
+import { History } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
+import { cn } from '@/lib/utils';
 
 interface EditPromptDialogProps {
   open: boolean;
@@ -17,15 +20,19 @@ interface EditPromptDialogProps {
   prompt: PromptData | null;
   onSuccess?: () => void;
   availableGroups: string[];
+  onVersionHistory?: (promptId: string) => void;
 }
 
-export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availableGroups }: EditPromptDialogProps) {
+export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availableGroups, onVersionHistory }: EditPromptDialogProps) {
+  const { showAlert } = useAlert();
   const [name, setName] = useState('');
   const [promptText, setPromptText] = useState('');
   const [emoji, setEmoji] = useState('');
   const [description, setDescription] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [versionDescription, setVersionDescription] = useState('');
+  const [showCreateVersion, setShowCreateVersion] = useState(false);
 
   useEffect(() => {
     if (prompt) {
@@ -61,17 +68,60 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
         onOpenChange(false);
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
 
-  const handleSubmit = () => {
+  const { loading: creatingVersion, run: createVersion } = useRequest(
+    async () => {
+      if (!prompt) return;
+
+      const response = await fetch(`/api/prompts/${prompt.id}/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: versionDescription }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '创建版本失败');
+      }
+
+      return response.json();
+    },
+    {
+      manual: true,
+      onSuccess: () => {
+        setVersionDescription('');
+        setShowCreateVersion(false);
+        showAlert({ description: '保存并创建版本成功' });
+        onSuccess?.();
+        onOpenChange(false);
+      },
+      onError: (error) => {
+        showAlert({ description: error.message });
+      },
+    }
+  );
+
+  const handleSubmit = async () => {
     if (!name.trim() || !promptText.trim()) {
-      alert('名称和提示词内容不能为空');
+      showAlert({ description: '名称和提示词内容不能为空' });
       return;
     }
-    updatePrompt();
+    
+    // 如果是创建版本模式，先保存再创建版本
+    if (showCreateVersion) {
+      try {
+        await updatePrompt();
+        await createVersion();
+      } catch (error) {
+        // 错误已在各自的 onError 中处理
+      }
+    } else {
+      updatePrompt();
+    }
   };
 
 
@@ -91,7 +141,7 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
             <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">Emoji</label>
             <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
               <PopoverTrigger>
-                <Button type="button" variant="outline" className="w-15 h-15 text-2xl">
+                <Button type="button" variant="outline" className={cn("w-12 h-12", emoji ? "text-2xl" : "text-sm")}>
                   {emoji || '选择'}
                 </Button>
               </PopoverTrigger>
@@ -150,12 +200,55 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
         </div>
 
         <DialogFooter className="mt-4 md:mt-6 flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="w-full sm:w-auto">
-            取消
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
-            {loading ? '保存中...' : '保存'}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <div className="flex gap-2 flex-1">
+              <Button 
+                variant="outline" 
+                onClick={() => onVersionHistory?.(prompt?.id || '')} 
+                disabled={loading}
+                className="flex-1 sm:flex-initial"
+              >
+                <History className="w-4 h-4 mr-2" />
+                版本历史
+              </Button>
+              {!showCreateVersion ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowCreateVersion(true)} 
+                  disabled={loading}
+                  className="flex-1 sm:flex-initial"
+                >
+                  创建版本
+                </Button>
+              ) : (
+                <div className="flex gap-2 flex-1 mr-8">
+                  <Input
+                    value={versionDescription}
+                    onChange={(e) => setVersionDescription(e.target.value)}
+                    placeholder="版本说明（可选）"
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => {
+                      setShowCreateVersion(false);
+                      setVersionDescription('');
+                    }}
+                    variant="outline"
+                  >
+                    取消
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="flex-1 sm:flex-initial">
+                取消
+              </Button>
+              <Button onClick={handleSubmit} disabled={loading || creatingVersion} className="flex-1 sm:flex-initial">
+                {loading || creatingVersion ? '保存中...' : (showCreateVersion ? '保存为新版本' : '保存')}
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

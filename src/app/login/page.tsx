@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useAlert } from '@/components/AlertProvider';
 
 const schema = z.object({
 	email: z.string().email(),
@@ -19,6 +20,7 @@ const githubEnabled = process.env.NEXT_PUBLIC_AUTH_GITHUB_ENABLED === 'true' || 
 
 export default function LoginPage() {
 	const router = useRouter();
+	const { showAlert } = useAlert();
 	const [loading, setLoading] = useState(false);
 	const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -27,7 +29,7 @@ export default function LoginPage() {
 		const res = await signIn('credentials', { email: values.email, password: values.password, redirect: false });
 		setLoading(false);
 		if (res?.error) {
-			alert(res.error);
+			showAlert({ description: res.error });
 			return;
 		}
 		router.push('/account/settings');

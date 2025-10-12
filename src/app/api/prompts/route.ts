@@ -1,6 +1,6 @@
 import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
-import { Prompt } from '@/types/prompt';
+import { Prompt, PromptVersion } from '@/types/prompt';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -75,9 +75,23 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await collection.insertOne(newPrompt as Prompt);
+    const promptId = result.insertedId.toString();
+
+    // 自动创建初始版本
+    const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
+    const initialVersion: Omit<PromptVersion, '_id'> = {
+      promptId,
+      version: 1,
+      name,
+      prompt,
+      description: '初始版本',
+      createdAt: now,
+      createdBy: session.user.id,
+    };
+    await versionsCollection.insertOne(initialVersion as PromptVersion);
 
     return NextResponse.json({
-      id: result.insertedId.toString(),
+      id: promptId,
       ...newPrompt,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),

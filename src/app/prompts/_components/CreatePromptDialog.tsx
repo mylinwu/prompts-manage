@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useRequest } from 'ahooks';
 import { cn } from '@/lib/utils';
+import { useAlert } from '@/components/AlertProvider';
 
 interface CreatePromptDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface CreatePromptDialogProps {
 }
 
 export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGroups }: CreatePromptDialogProps) {
+  const { showAlert } = useAlert();
   const [name, setName] = useState('');
   const [prompt, setPrompt] = useState('');
   const [emoji, setEmoji] = useState('');
@@ -48,7 +50,7 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
         handleClose();
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -64,7 +66,7 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
 
   const handleSubmit = () => {
     if (!name.trim() || !prompt.trim()) {
-      alert('名称和提示词内容不能为空');
+      showAlert({ description: '名称和提示词内容不能为空' });
       return;
     }
     createPrompt();

@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
 
 export function MarketPageClient() {
   const { data: session } = useSession();
+  const { showAlert } = useAlert();
   const [selectedGroup, setSelectedGroup] = useState('全部');
   const [searchText, setSearchText] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -50,7 +52,13 @@ export function MarketPageClient() {
       manual: true,
       onSuccess: ({ data, append }) => {
         if (append) {
-          setPrompts((prev) => [...prev, ...data.prompts]);
+          setPrompts((prev) => {
+            // 创建一个 Set 来存储已存在的 ID
+            const existingIds = new Set(prev.map(p => p.id));
+            // 只添加不重复的新数据
+            const newPrompts = data.prompts.filter((p: MarketPromptData) => !existingIds.has(p.id));
+            return [...prev, ...newPrompts];
+          });
         } else {
           setPrompts(data.prompts);
         }
@@ -81,7 +89,7 @@ export function MarketPageClient() {
   const { run: toggleFavorite } = useRequest(
     async (promptId: string) => {
       if (!session?.user) {
-        alert('请先登录');
+        showAlert({ description: '请先登录' });
         return;
       }
 
@@ -109,7 +117,7 @@ export function MarketPageClient() {
         );
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -118,7 +126,7 @@ export function MarketPageClient() {
   const { run: clonePrompt } = useRequest(
     async (promptId: string) => {
       if (!session?.user) {
-        alert('请先登录');
+        showAlert({ description: '请先登录' });
         window.location.href = '/login?callbackUrl=/prompts/market';
         return;
       }
@@ -137,10 +145,10 @@ export function MarketPageClient() {
     {
       manual: true,
       onSuccess: () => {
-        alert('已添加到我的提示词');
+        showAlert({ description: '已添加到我的提示词' });
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -244,7 +252,7 @@ export function MarketPageClient() {
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-2">
               <h1 className="text-lg md:text-xl font-semibold truncate">{searchText ? '搜索结果' : selectedGroup}</h1>
-              <Badge variant="secondary" className="text-xs">{prompts.length}</Badge>
+              <Badge variant="secondary" className="text-xs">{total}</Badge>
             </div>
           </div>
 
@@ -259,11 +267,11 @@ export function MarketPageClient() {
               }}
               className="flex-1 text-sm md:text-base"
             />
-            <Button variant="outline" size="sm" onClick={handleSearch}>
+            <Button variant="outline" onClick={handleSearch} className="h-10">
               <Search className="w-4 h-4" />
             </Button>
             {searchText && (
-              <Button variant="outline" size="sm" onClick={handleSearchClear} className="hidden sm:flex">
+              <Button variant="outline" onClick={handleSearchClear} className="hidden sm:flex h-10">
                 清除
               </Button>
             )}

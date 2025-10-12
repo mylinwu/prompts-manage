@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from '@/components/ui/button';
 import { useRequest } from 'ahooks';
 import { Download } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
 
 interface ExportDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onOpenChange, selectedIds }: ExportDialogProps) {
+  const { showAlert } = useAlert();
   const { loading, run: exportPrompts } = useRequest(
     async () => {
       const url = selectedIds && selectedIds.length > 0
@@ -44,7 +46,7 @@ export function ExportDialog({ open, onOpenChange, selectedIds }: ExportDialogPr
         onOpenChange(false);
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );

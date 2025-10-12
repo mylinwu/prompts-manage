@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { PromptData, MarketPromptData } from '@/types/prompt';
 import ReactMarkdown from 'react-markdown';
 import { Copy } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
 
 interface PromptDetailDialogProps {
   open: boolean;
@@ -13,11 +14,13 @@ interface PromptDetailDialogProps {
 }
 
 export function PromptDetailDialog({ open, onOpenChange, prompt }: PromptDetailDialogProps) {
+  const { showAlert } = useAlert();
+  
   if (!prompt) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt.prompt);
-    alert('已复制到剪贴板');
+    showAlert({ description: '已复制到剪贴板' });
   };
 
   return (

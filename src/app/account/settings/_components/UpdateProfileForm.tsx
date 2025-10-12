@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { useAlert } from '@/components/AlertProvider';
 
 const schema = z.object({
 	name: z.string().min(1, '请输入姓名').max(64, '姓名过长'),
@@ -18,6 +19,7 @@ interface UpdateProfileFormProps {
 
 export default function UpdateProfileForm({ initialName }: UpdateProfileFormProps) {
 	const router = useRouter();
+	const { showAlert } = useAlert();
 	const [submitting, setSubmitting] = useState(false);
 	const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ 
 		resolver: zodResolver(schema),
@@ -36,10 +38,10 @@ export default function UpdateProfileForm({ initialName }: UpdateProfileFormProp
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				alert(data.error || '修改失败');
+				showAlert({ description: data.error || '修改失败' });
 				return;
 			}
-			alert('资料已更新');
+			showAlert({ description: '资料已更新' });
 			router.refresh();
 		} finally {
 			setSubmitting(false);

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { useAlert } from '@/components/AlertProvider';
 
 const schema = z.object({
 	name: z.string().min(1, '请输入姓名').max(64),
@@ -17,6 +18,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
 	const router = useRouter();
+	const { showAlert } = useAlert();
 	const [loading, setLoading] = useState(false);
 	const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -30,7 +32,7 @@ export default function RegisterPage() {
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				alert(data.error || '注册失败');
+				showAlert({ description: data.error || '注册失败' });
 				return;
 			}
 			await signIn('credentials', { email: values.email, password: values.password, redirect: false });

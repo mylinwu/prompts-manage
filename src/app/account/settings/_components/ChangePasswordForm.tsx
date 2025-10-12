@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAlert } from '@/components/AlertProvider';
 
 const schema = z.object({
 	oldPassword: z.string().min(8, '至少 8 位'),
@@ -13,6 +14,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function ChangePasswordForm() {
+	const { showAlert } = useAlert();
 	const [submitting, setSubmitting] = useState(false);
 	const { register, handleSubmit, formState: { errors }, reset } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -26,11 +28,11 @@ export default function ChangePasswordForm() {
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				alert(data.error || '修改失败');
+				showAlert({ description: data.error || '修改失败' });
 				return;
 			}
 			reset();
-			alert('密码已更新');
+			showAlert({ description: '密码已更新' });
 		} finally {
 			setSubmitting(false);
 		}

@@ -14,8 +14,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Upload, Download, Search } from 'lucide-react';
+import { useAlert } from '@/components/AlertProvider';
 
 export function PromptsPageClient() {
+  const { showAlert, showConfirm } = useAlert();
   const [selectedGroup, setSelectedGroup] = useState('全部');
   const [searchText, setSearchText] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -89,7 +91,7 @@ export function PromptsPageClient() {
         handleRefresh();
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -113,11 +115,11 @@ export function PromptsPageClient() {
     {
       manual: true,
       onSuccess: (data) => {
-        alert(data.message);
+        showAlert({ description: data.message });
         handleRefresh();
       },
       onError: (error) => {
-        alert(error.message);
+        showAlert({ description: error.message });
       },
     }
   );
@@ -148,8 +150,12 @@ export function PromptsPageClient() {
     setShowEditDialog(true);
   };
 
-  const handleDelete = (prompt: PromptData) => {
-    if (confirm(`确定要删除「${prompt.name}」吗？`)) {
+  const handleDelete = async (prompt: PromptData) => {
+    const confirmed = await showConfirm({ 
+      title: '确认删除',
+      description: `确定要删除「${prompt.name}」吗？` 
+    });
+    if (confirmed) {
       deletePrompt(prompt.id);
     }
   };
@@ -159,8 +165,12 @@ export function PromptsPageClient() {
     setShowVersionDialog(true);
   };
 
-  const handlePublish = (prompt: PromptData) => {
-    if (confirm(`确定要${prompt.isPublished ? '更新' : '发布'}「${prompt.name}」到市场吗？`)) {
+  const handlePublish = async (prompt: PromptData) => {
+    const confirmed = await showConfirm({ 
+      title: '确认发布',
+      description: `确定要${prompt.isPublished ? '更新' : '发布'}「${prompt.name}」到市场吗？` 
+    });
+    if (confirmed) {
       publishToMarket(prompt.id);
     }
   };
@@ -255,11 +265,11 @@ export function PromptsPageClient() {
               }}
               className="flex-1 text-sm md:text-base"
             />
-            <Button variant="outline" size="sm" onClick={handleSearch}>
+            <Button variant="outline" onClick={handleSearch} className="h-10">
               <Search className="w-4 h-4" />
             </Button>
             {searchText && (
-              <Button variant="outline" size="sm" onClick={handleSearchClear} className="hidden sm:flex">
+              <Button variant="outline" onClick={handleSearchClear} className="hidden sm:flex h-10">
                 清除
               </Button>
             )}
@@ -306,6 +316,10 @@ export function PromptsPageClient() {
         prompt={selectedPrompt}
         onSuccess={handleRefresh}
         availableGroups={groups}
+        onVersionHistory={(promptId) => {
+          setShowEditDialog(false);
+          setShowVersionDialog(true);
+        }}
       />
 
       <VersionHistoryDialog
