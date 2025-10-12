@@ -47,17 +47,17 @@ export default function UpdateProfileForm({ initialName }: UpdateProfileFormProp
 	};
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+		<form onSubmit={handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
 			<div>
-				<label className="block text-sm font-medium mb-1">姓名</label>
+				<label className="block text-xs md:text-sm font-medium mb-1">姓名</label>
 				<input 
 					type="text" 
-					className="w-full border rounded px-3 py-2" 
+					className="w-full border rounded px-3 py-2 text-sm md:text-base" 
 					{...register('name')} 
 				/>
-				{errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
+				{errors.name && <p className="text-red-600 text-xs md:text-sm mt-1">{errors.name.message}</p>}
 			</div>
-			<button type="submit" disabled={submitting} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60">
+			<button type="submit" disabled={submitting} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60 text-sm md:text-base">
 				{submitting ? '提交中...' : '更新资料'}
 			</button>
 		</form>

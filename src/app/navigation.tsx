@@ -13,12 +13,13 @@ export default function Navigation() {
 	];
 	
 	return (
-		<nav className="flex items-center gap-6 text-sm">
+		<nav className="flex items-center gap-3 md:gap-6 text-xs md:text-sm">
 			<Link 
 				href="/" 
-				className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
+				className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all whitespace-nowrap"
 			>
-				提示词管理
+				<span className="hidden sm:inline">提示词管理</span>
+				<span className="sm:hidden">提示词</span>
 			</Link>
 			{navItems.map((item) => {
 				let isActive = false;
@@ -34,15 +35,16 @@ export default function Navigation() {
 						key={item.href}
 						href={item.href}
 						className={cn(
-							"hover:text-slate-900 transition-colors relative",
+							"hover:text-slate-900 transition-colors relative whitespace-nowrap",
 							isActive 
 								? "text-blue-600 font-medium" 
 								: "text-slate-600"
 						)}
 					>
-						{item.label}
+						<span className="hidden sm:inline">{item.label}</span>
+						<span className="sm:hidden">{item.label.replace('我的提示词', '我的').replace('提示词市场', '市场')}</span>
 						{isActive && (
-							<span className="absolute -bottom-[14px] left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600" />
+							<span className="absolute -bottom-[14px] md:-bottom-[14px] left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600" />
 						)}
 					</Link>
 				);

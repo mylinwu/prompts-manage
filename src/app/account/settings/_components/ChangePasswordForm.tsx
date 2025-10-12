@@ -37,18 +37,18 @@ export default function ChangePasswordForm() {
 	};
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+		<form onSubmit={handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
 			<div>
-				<label className="block text-sm font-medium mb-1">旧密码</label>
-				<input type="password" className="w-full border rounded px-3 py-2" {...register('oldPassword')} />
-				{errors.oldPassword && <p className="text-red-600 text-sm mt-1">{errors.oldPassword.message}</p>}
+				<label className="block text-xs md:text-sm font-medium mb-1">旧密码</label>
+				<input type="password" className="w-full border rounded px-3 py-2 text-sm md:text-base" {...register('oldPassword')} />
+				{errors.oldPassword && <p className="text-red-600 text-xs md:text-sm mt-1">{errors.oldPassword.message}</p>}
 			</div>
 			<div>
-				<label className="block text-sm font-medium mb-1">新密码</label>
-				<input type="password" className="w-full border rounded px-3 py-2" {...register('newPassword')} />
-				{errors.newPassword && <p className="text-red-600 text-sm mt-1">{errors.newPassword.message}</p>}
+				<label className="block text-xs md:text-sm font-medium mb-1">新密码</label>
+				<input type="password" className="w-full border rounded px-3 py-2 text-sm md:text-base" {...register('newPassword')} />
+				{errors.newPassword && <p className="text-red-600 text-xs md:text-sm mt-1">{errors.newPassword.message}</p>}
 			</div>
-			<button type="submit" disabled={submitting} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60">
+			<button type="submit" disabled={submitting} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60 text-sm md:text-base">
 				{submitting ? '提交中...' : '更新密码'}
 			</button>
 		</form>

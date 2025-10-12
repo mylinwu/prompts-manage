@@ -73,16 +73,16 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-full">
         <DialogClose onClick={handleClose} />
         <DialogHeader>
           <DialogTitle>创建提示词</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-3 md:space-y-4 mt-3 md:mt-4">
           {/* Emoji 选择器 */}
           <div>
-            <label className="block text-sm font-medium mb-2">Emoji</label>
+            <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">Emoji</label>
             <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
               <PopoverTrigger>
                 <Button type="button" variant="outline" className={cn("w-12 h-12", emoji ? "text-2xl" : "text-sm")}>
@@ -102,21 +102,21 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
 
           {/* 名称 */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">
               名称 <span className="text-red-500">*</span>
             </label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="输入名称" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="输入名称" className="text-sm md:text-base" />
           </div>
 
           {/* 描述 */}
           <div>
-            <label className="block text-sm font-medium mb-2">描述</label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="输入描述" />
+            <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">描述</label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="输入描述" className="text-sm md:text-base" />
           </div>
 
           {/* 分组 */}
           <div>
-            <label className="block text-sm font-medium mb-2">分组</label>
+            <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">分组</label>
             <MultiSelect
               options={availableGroups}
               selected={selectedGroups}
@@ -128,26 +128,26 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
           
           {/* 提示词内容 */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-xs md:text-sm font-medium mb-1 md:mb-2">
               提示词 <span className="text-red-500">*</span>
             </label>
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="输入提示词内容"
-              rows={10}
-              className="font-mono text-sm"
+              rows={8}
+              className="font-mono text-xs md:text-sm"
             />
             <div className="text-xs text-slate-500 mt-1">字符数: {prompt.length}</div>
           </div>
 
         </div>
 
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
+        <DialogFooter className="mt-4 md:mt-6 flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={loading} className="w-full sm:w-auto">
             取消
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
             {loading ? '创建中...' : '创建'}
           </Button>
         </DialogFooter>

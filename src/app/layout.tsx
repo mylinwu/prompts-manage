@@ -32,14 +32,14 @@ export default function RootLayout({
       >
         <Providers>
           <header className="border-b bg-white">
-            <div className="max-w-full flex items-center justify-between h-12 px-4">
+            <div className="max-w-full flex items-center justify-between h-14 md:h-12 px-3 md:px-4">
               <Navigation />
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4">
                 <AuthNav />
               </div>
             </div>
           </header>
-          <main className="h-[calc(100vh-3rem)]">{children}</main>
+          <main className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)]">{children}</main>
         </Providers>
       </body>
     </html>

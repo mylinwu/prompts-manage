@@ -205,9 +205,9 @@ export function MarketPageClient() {
 
 
   return (
-    <div className="flex h-[calc(100vh-3rem)]">
+    <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)]">
       {/* 左侧分组导航 */}
-      <div className="w-48 border-r border-slate-200 overflow-y-auto">
+      <div className="hidden md:block w-48 border-r border-slate-200 overflow-y-auto">
         <div className="p-4 space-y-1">
           <button
             onClick={() => setSelectedGroup('全部')}
@@ -240,16 +240,16 @@ export function MarketPageClient() {
       {/* 右侧内容区域 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 头部 */}
-        <div className="border-b border-slate-200 p-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-b border-slate-200 p-3 md:p-4">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">{searchText ? '搜索结果' : selectedGroup}</h1>
-              <Badge variant="secondary">{prompts.length}</Badge>
+              <h1 className="text-lg md:text-xl font-semibold truncate">{searchText ? '搜索结果' : selectedGroup}</h1>
+              <Badge variant="secondary" className="text-xs">{prompts.length}</Badge>
             </div>
           </div>
 
           {/* 搜索框 */}
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2">
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -257,13 +257,13 @@ export function MarketPageClient() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSearch();
               }}
-              className="flex-1"
+              className="flex-1 text-sm md:text-base"
             />
-            <Button variant="outline" onClick={handleSearch}>
+            <Button variant="outline" size="sm" onClick={handleSearch}>
               <Search className="w-4 h-4" />
             </Button>
             {searchText && (
-              <Button variant="outline" onClick={handleSearchClear}>
+              <Button variant="outline" size="sm" onClick={handleSearchClear} className="hidden sm:flex">
                 清除
               </Button>
             )}
@@ -271,14 +271,14 @@ export function MarketPageClient() {
         </div>
 
         {/* 提示词列表 */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
           {prompts.length === 0 && !loading ? (
-            <div className="text-center py-20 text-slate-500">
+            <div className="text-center py-20 text-slate-500 text-sm md:text-base px-4">
               {searchText ? '没有找到相关提示词' : '暂无提示词'}
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {prompts.map((prompt) => (
                   <MarketPromptCard
                     key={prompt.id}
@@ -291,9 +291,9 @@ export function MarketPageClient() {
               </div>
               {/* 触底加载触发器 */}
               <div ref={observerTarget} className="h-10 flex items-center justify-center mt-4">
-                {loading && <div className="text-slate-500">加载中...</div>}
+                {loading && <div className="text-slate-500 text-sm">加载中...</div>}
                 {!hasMore && prompts.length > 0 && (
-                  <div className="text-slate-400 text-sm">已加载全部 {total} 条数据</div>
+                  <div className="text-slate-400 text-xs md:text-sm">已加载全部 {total} 条数据</div>
                 )}
               </div>
             </>

@@ -34,33 +34,33 @@ export default function LoginPage() {
 	};
 
 	return (
-		<div className="max-w-md mx-auto py-10">
-			<h1 className="text-2xl font-semibold mb-6">登录</h1>
-			<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+		<div className="max-w-md mx-auto px-4 md:px-0 py-6 md:py-10">
+			<h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">登录</h1>
+			<form onSubmit={handleSubmit(onSubmit)} className="space-y-3 md:space-y-4">
 				<div>
-					<label className="block text-sm font-medium mb-1">邮箱</label>
-					<input type="email" className="w-full border rounded px-3 py-2" {...register('email')} />
-					{errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
+					<label className="block text-xs md:text-sm font-medium mb-1">邮箱</label>
+					<input type="email" className="w-full border rounded px-3 py-2 text-sm md:text-base" {...register('email')} />
+					{errors.email && <p className="text-red-600 text-xs md:text-sm mt-1">{errors.email.message}</p>}
 				</div>
 				<div>
-					<label className="block text-sm font-medium mb-1">密码</label>
-					<input type="password" className="w-full border rounded px-3 py-2" {...register('password')} />
-					{errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
+					<label className="block text-xs md:text-sm font-medium mb-1">密码</label>
+					<input type="password" className="w-full border rounded px-3 py-2 text-sm md:text-base" {...register('password')} />
+					{errors.password && <p className="text-red-600 text-xs md:text-sm mt-1">{errors.password.message}</p>}
 				</div>
-				<button type="submit" disabled={loading} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60 w-full">
+				<button type="submit" disabled={loading} className="bg-black text-white rounded px-4 py-2 disabled:opacity-60 w-full text-sm md:text-base">
 					{loading ? '登录中...' : '登录'}
 				</button>
 			</form>
-			<div className="my-6 h-px bg-gray-200" />
-			<div className="space-y-3">
+			<div className="my-4 md:my-6 h-px bg-gray-200" />
+			<div className="space-y-2 md:space-y-3">
 				{googleEnabled && (
-					<button onClick={() => signIn('google')} className="w-full border rounded px-4 py-2">使用 Google 登录</button>
+					<button onClick={() => signIn('google')} className="w-full border rounded px-4 py-2 text-sm md:text-base">使用 Google 登录</button>
 				)}
 				{githubEnabled && (
-					<button onClick={() => signIn('github')} className="w-full border rounded px-4 py-2">使用 GitHub 登录</button>
+					<button onClick={() => signIn('github')} className="w-full border rounded px-4 py-2 text-sm md:text-base">使用 GitHub 登录</button>
 				)}
 			</div>
-			<div className="mt-6 text-center">
+			<div className="mt-4 md:mt-6 text-center">
 				<p className="text-sm text-gray-600">
 					还没有账号？{' '}
 					<a href="/register" className="text-blue-600 hover:underline">

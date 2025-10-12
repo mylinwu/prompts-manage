@@ -55,7 +55,7 @@ export function PromptCard({
   return (
     <div
       ref={cardRef}
-      className="relative h-full rounded-lg border border-slate-200 bg-white p-4 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="relative h-full rounded-lg border border-slate-200 bg-white p-3 md:p-4 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
       onClick={onClick}
     >
       {isVisible && (
@@ -70,7 +70,7 @@ export function PromptCard({
           {/* 头部 */}
           <div className="flex items-start justify-between gap-2 relative z-20">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base leading-tight line-clamp-1 mb-2">
+              <h3 className="font-semibold text-sm md:text-base leading-tight line-clamp-1 mb-1 md:mb-2">
                 {prompt.name}
               </h3>
               <div className="flex flex-wrap gap-1">
@@ -82,9 +82,9 @@ export function PromptCard({
               </div>
             </div>
 
-            <div className="flex items-start gap-2 flex-shrink-0">
+            <div className="flex items-start gap-1 md:gap-2 flex-shrink-0">
               {prompt.emoji && (
-                <div className="w-11 h-11 rounded-lg bg-slate-100 flex items-center justify-center text-2xl">
+                <div className="w-9 h-9 md:w-11 md:h-11 rounded-lg bg-slate-100 flex items-center justify-center text-xl md:text-2xl">
                   {prompt.emoji}
                 </div>
               )}
@@ -163,9 +163,9 @@ export function PromptCard({
           </div>
 
           {/* 内容 */}
-          <div className="flex-1 mt-4 relative z-10">
+          <div className="flex-1 mt-3 md:mt-4 relative z-10">
             <div className="bg-slate-50 rounded-lg p-2 h-full">
-              <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 line-clamp-3 leading-relaxed">
                 {displayText}
               </p>
             </div>
