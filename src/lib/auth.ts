@@ -8,6 +8,16 @@ import { getCollection } from '@/lib/db';
 import { compare } from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 
+declare module 'next-auth' {
+	interface Session {
+		user: {
+			id: string;
+		} & DefaultSession['user'];
+	}
+}
+
+import type { DefaultSession } from 'next-auth';
+
 export const authOptions: NextAuthOptions = {
 	adapter: MongoDBAdapter(clientPromise, { databaseName: process.env.MONGODB_DB }),
 	secret: process.env.NEXTAUTH_SECRET,
