@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { useRequest } from 'ahooks';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,6 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
   const [emoji, setEmoji] = useState('');
   const [description, setDescription] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [newGroup, setNewGroup] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const { loading, run: createPrompt } = useRequest(
@@ -59,7 +59,6 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
     setEmoji('');
     setDescription('');
     setSelectedGroups([]);
-    setNewGroup('');
     onOpenChange(false);
   };
 
@@ -71,12 +70,6 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
     createPrompt();
   };
 
-  const handleAddGroup = () => {
-    if (newGroup.trim() && !selectedGroups.includes(newGroup.trim())) {
-      setSelectedGroups([...selectedGroups, newGroup.trim()]);
-      setNewGroup('');
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,6 +114,18 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="输入描述" />
           </div>
 
+          {/* 分组 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">分组</label>
+            <MultiSelect
+              options={availableGroups}
+              selected={selectedGroups}
+              onChange={setSelectedGroups}
+              placeholder="选择或创建分组"
+              allowCustom={true}
+            />
+          </div>
+          
           {/* 提示词内容 */}
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -136,61 +141,6 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
             <div className="text-xs text-slate-500 mt-1">字符数: {prompt.length}</div>
           </div>
 
-          {/* 分组 */}
-          <div>
-            <label className="block text-sm font-medium mb-2">分组</label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newGroup}
-                onChange={(e) => setNewGroup(e.target.value)}
-                placeholder="输入新分组或从下方选择"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddGroup();
-                  }
-                }}
-              />
-              <Button type="button" onClick={handleAddGroup} variant="outline">
-                添加
-              </Button>
-            </div>
-            {availableGroups.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {availableGroups.map((group) => (
-                  <button
-                    key={group}
-                    type="button"
-                    onClick={() => {
-                      if (!selectedGroups.includes(group)) {
-                        setSelectedGroups([...selectedGroups, group]);
-                      }
-                    }}
-                    className="px-2 py-1 text-xs rounded-md bg-slate-100 hover:bg-slate-200 transition-colors"
-                  >
-                    {group}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {selectedGroups.map((group) => (
-                <span
-                  key={group}
-                  className="px-2 py-1 text-xs rounded-md bg-slate-900 text-white flex items-center gap-1"
-                >
-                  {group}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGroups(selectedGroups.filter((g) => g !== group))}
-                    className="hover:text-red-300"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
 
         <DialogFooter className="mt-6">

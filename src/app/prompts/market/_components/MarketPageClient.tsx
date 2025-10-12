@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRequest } from 'ahooks';
 import { useSession } from 'next-auth/react';
 import { MarketPromptData } from '@/types/prompt';
@@ -18,12 +18,17 @@ export function MarketPageClient() {
   const [searchInput, setSearchInput] = useState('');
   const [prompts, setPrompts] = useState<MarketPromptData[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
+  const [groupCounts, setGroupCounts] = useState<Record<string, number>>({});
   const [selectedPrompt, setSelectedPrompt] = useState<MarketPromptData | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // 获取市场提示词列表
   const { loading, run: fetchPrompts } = useRequest(
-    async () => {
+    async (pageNum: number, append: boolean = false) => {
       const params = new URLSearchParams();
       if (selectedGroup && selectedGroup !== '全部') {
         params.append('group', selectedGroup);
@@ -31,19 +36,27 @@ export function MarketPageClient() {
       if (searchText.trim()) {
         params.append('search', searchText);
       }
+      params.append('page', pageNum.toString());
+      params.append('limit', '20');
 
-      const url = `/api/market/prompts${params.toString() ? '?' + params.toString() : ''}`;
+      const url = `/api/market/prompts?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('获取市场提示词失败');
 
       const data = await response.json();
-      return data.prompts;
+      return { data, append };
     },
     {
-      onSuccess: (data) => {
-        setPrompts(data);
+      manual: true,
+      onSuccess: ({ data, append }) => {
+        if (append) {
+          setPrompts((prev) => [...prev, ...data.prompts]);
+        } else {
+          setPrompts(data.prompts);
+        }
+        setTotal(data.total);
+        setHasMore(data.page < data.totalPages);
       },
-      refreshDeps: [selectedGroup, searchText],
     }
   );
 
@@ -54,11 +67,12 @@ export function MarketPageClient() {
       if (!response.ok) throw new Error('获取分组失败');
 
       const data = await response.json();
-      return data.groups;
+      return data;
     },
     {
       onSuccess: (data) => {
-        setGroups(data);
+        setGroups(data.groups);
+        setGroupCounts({ '全部': data.total, ...data.groupCounts });
       },
     }
   );
@@ -131,6 +145,50 @@ export function MarketPageClient() {
     }
   );
 
+  // 重置并加载第一页
+  const resetAndFetch = useCallback(() => {
+    setPage(1);
+    setPrompts([]);
+    fetchPrompts(1, false);
+  }, [fetchPrompts]);
+
+  // 加载更多
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPrompts(nextPage, true);
+    }
+  }, [loading, hasMore, page, fetchPrompts]);
+
+  // 监听分组和搜索变化
+  useEffect(() => {
+    resetAndFetch();
+  }, [selectedGroup, searchText]);
+
+  // 触底加载
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, loading, loadMore]);
+
   const handleSearch = () => {
     setSearchText(searchInput);
   };
@@ -145,15 +203,6 @@ export function MarketPageClient() {
     setShowDetailDialog(true);
   };
 
-  const groupCounts = useMemo(() => {
-    const counts: Record<string, number> = { '全部': prompts.length };
-    prompts.forEach((p) => {
-      p.groups.forEach((g) => {
-        counts[g] = (counts[g] || 0) + 1;
-      });
-    });
-    return counts;
-  }, [prompts]);
 
   return (
     <div className="flex h-[calc(100vh-3rem)]">
@@ -223,24 +272,31 @@ export function MarketPageClient() {
 
         {/* 提示词列表 */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
-            <div className="text-center py-20 text-slate-500">加载中...</div>
-          ) : prompts.length === 0 ? (
+          {prompts.length === 0 && !loading ? (
             <div className="text-center py-20 text-slate-500">
               {searchText ? '没有找到相关提示词' : '暂无提示词'}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {prompts.map((prompt) => (
-                <MarketPromptCard
-                  key={prompt.id}
-                  prompt={prompt}
-                  onClick={() => handleDetail(prompt)}
-                  onFavorite={() => toggleFavorite(prompt.id)}
-                  onClone={() => clonePrompt(prompt.id)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {prompts.map((prompt) => (
+                  <MarketPromptCard
+                    key={prompt.id}
+                    prompt={prompt}
+                    onClick={() => handleDetail(prompt)}
+                    onFavorite={() => toggleFavorite(prompt.id)}
+                    onClone={() => clonePrompt(prompt.id)}
+                  />
+                ))}
+              </div>
+              {/* 触底加载触发器 */}
+              <div ref={observerTarget} className="h-10 flex items-center justify-center mt-4">
+                {loading && <div className="text-slate-500">加载中...</div>}
+                {!hasMore && prompts.length > 0 && (
+                  <div className="text-slate-400 text-sm">已加载全部 {total} 条数据</div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

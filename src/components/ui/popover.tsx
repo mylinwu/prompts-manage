@@ -34,7 +34,7 @@ const Popover = ({ open: controlledOpen, onOpenChange, children }: PopoverProps)
 
   return (
     <PopoverContext.Provider value={{ open, setOpen }}>
-      <div className="relative inline-block">{children}</div>
+      <div className="relative block">{children}</div>
     </PopoverContext.Provider>
   );
 };
