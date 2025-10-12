@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from 'next/link';
+import Navigation from '@/app/navigation';
 import AuthNav from '@/app/nav';
 import Providers from '@/app/providers';
 
@@ -33,11 +33,7 @@ export default function RootLayout({
         <Providers>
           <header className="border-b bg-white">
             <div className="max-w-full flex items-center justify-between h-12 px-4">
-              <nav className="flex items-center gap-6 text-sm">
-                <Link href="/" className="font-semibold">提示词管理</Link>
-                <Link href="/prompts" className="hover:text-slate-600">我的提示词</Link>
-                <Link href="/prompts/market" className="hover:text-slate-600">提示词市场</Link>
-              </nav>
+              <Navigation />
               <div className="flex items-center gap-4">
                 <AuthNav />
               </div>

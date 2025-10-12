@@ -60,6 +60,14 @@ export default function LoginPage() {
 					<button onClick={() => signIn('github')} className="w-full border rounded px-4 py-2">使用 GitHub 登录</button>
 				)}
 			</div>
+			<div className="mt-6 text-center">
+				<p className="text-sm text-gray-600">
+					还没有账号？{' '}
+					<a href="/register" className="text-blue-600 hover:underline">
+						立即注册
+					</a>
+				</p>
+			</div>
 		</div>
 	);
 }

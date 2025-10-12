@@ -97,7 +97,7 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
             <label className="block text-sm font-medium mb-2">Emoji</label>
             <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
               <PopoverTrigger>
-                <Button type="button" variant="outline" className="w-20 h-20 text-3xl">
+                <Button type="button" variant="outline" className="w-15 h-15 text-2xl">
                   {emoji || '选择'}
                 </Button>
               </PopoverTrigger>

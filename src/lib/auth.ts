@@ -22,6 +22,10 @@ export const authOptions: NextAuthOptions = {
 	adapter: MongoDBAdapter(clientPromise, { databaseName: process.env.MONGODB_DB }),
 	secret: process.env.NEXTAUTH_SECRET,
 	session: { strategy: 'jwt' },
+	pages: {
+		signIn: '/login',
+		error: '/login',
+	},
 	providers: [
 		CredentialsProvider({
 			name: 'Credentials',

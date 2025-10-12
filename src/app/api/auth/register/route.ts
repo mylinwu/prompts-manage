@@ -6,7 +6,7 @@ import { hash } from 'bcryptjs';
 const schema = z.object({
 	email: z.string().email(),
 	password: z.string().min(8),
-	name: z.string().min(1).max(64).optional(),
+	name: z.string().min(1).max(64),
 });
 
 export async function POST(req: Request) {
@@ -20,6 +20,6 @@ export async function POST(req: Request) {
 	if (existing) return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
 
 	const passwordHash = await hash(password, 10);
-	await users.insertOne({ email, password: passwordHash, name: name ?? null, image: null, emailVerified: null });
+	await users.insertOne({ email, password: passwordHash, name, image: null, emailVerified: null });
 	return NextResponse.json({ ok: true });
 }

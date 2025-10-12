@@ -63,6 +63,14 @@ export default function RegisterPage() {
 					{loading ? '提交中...' : '注册'}
 				</button>
 			</form>
+			<div className="mt-6 text-center">
+				<p className="text-sm text-gray-600">
+					已有账号？{' '}
+					<a href="/login" className="text-blue-600 hover:underline">
+						立即登录
+					</a>
+				</p>
+			</div>
 		</div>
 	);
 }

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useRequest } from 'ahooks';
+import { cn } from '@/lib/utils';
 
 interface CreatePromptDialogProps {
   open: boolean;
@@ -91,7 +92,7 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
             <label className="block text-sm font-medium mb-2">Emoji</label>
             <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
               <PopoverTrigger>
-                <Button type="button" variant="outline" className="w-20 h-20 text-3xl">
+                <Button type="button" variant="outline" className={cn("w-12 h-12", emoji ? "text-2xl" : "text-sm")}>
                   {emoji || '选择'}
                 </Button>
               </PopoverTrigger>
