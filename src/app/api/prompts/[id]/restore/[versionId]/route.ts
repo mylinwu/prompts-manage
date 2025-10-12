@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; versionId: string }> }
+  context: { params: Promise<{ id: string; versionId: string }> }
 ) {
   try {
     const session = await getAuthSession();
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id, versionId } = await params;
+    const { id, versionId } = await context.params;
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
     const prompt = await promptsCollection.findOne({

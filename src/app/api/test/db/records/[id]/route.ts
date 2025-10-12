@@ -8,11 +8,14 @@ function getParams(req: NextRequest) {
   return { collection };
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const unauthorized = ensureAuth(_req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const { collection } = getParams(_req);
     const col = await getCollection(collection);
     const doc = await col.findOne({ _id: new ObjectId(id) });
@@ -23,11 +26,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const unauthorized = ensureAuth(req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await req.json();
     const { collection } = getParams(req);
     const col = await getCollection(collection);
@@ -39,11 +45,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const unauthorized = ensureAuth(req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const { collection } = getParams(req);
     const col = await getCollection(collection);
     const result = await col.deleteOne({ _id: new ObjectId(id) });

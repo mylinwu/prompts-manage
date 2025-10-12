@@ -4,14 +4,17 @@ import { Prompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const collection = await getCollection<Prompt>('prompts');
     const prompt = await collection.findOne({
       _id: new ObjectId(id),
@@ -40,14 +43,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await request.json();
     const { name, prompt, emoji, description, groups } = body;
 
@@ -97,14 +103,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const collection = await getCollection<Prompt>('prompts');
     const result = await collection.deleteOne({
       _id: new ObjectId(id),

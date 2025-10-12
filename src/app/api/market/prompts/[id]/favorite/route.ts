@@ -4,14 +4,17 @@ import { Favorite, MarketPrompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ isFavorited: false });
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const collection = await getCollection<Favorite>('favorites');
     const favorite = await collection.findOne({
       userId: session.user.id,
@@ -25,14 +28,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const favoritesCollection = await getCollection<Favorite>('favorites');
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
 
