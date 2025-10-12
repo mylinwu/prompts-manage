@@ -1,103 +1,111 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { getAuthSession } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
+import { FileText, Store, Upload, Download } from 'lucide-react';
 
-export default function Home() {
+export default async function Home() {
+  const session = await getAuthSession();
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="container mx-auto px-4 py-16">
+      <div className="max-w-4xl mx-auto">
+        {/* 标题区域 */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold mb-4">提示词管理工具</h1>
+          <p className="text-xl text-slate-600 mb-8">
+            轻松管理、分享和发现优质的 AI 提示词
+          </p>
+          {session?.user ? (
+            <div className="flex gap-4 justify-center">
+              <Link href="/prompts">
+                <Button size="lg">
+                  <FileText className="w-5 h-5 mr-2" />
+                  我的提示词
+                </Button>
+              </Link>
+              <Link href="/prompts/market">
+                <Button size="lg" variant="outline">
+                  <Store className="w-5 h-5 mr-2" />
+                  浏览市场
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex gap-4 justify-center">
+              <Link href="/register">
+                <Button size="lg">立即开始</Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline">
+                  登录
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* 功能特性 */}
+        <div className="grid md:grid-cols-2 gap-8 mb-16">
+          <div className="border border-slate-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">提示词管理</h3>
+            <p className="text-slate-600">
+              创建、编辑和组织你的提示词。支持 Markdown 语法，按分组管理，轻松查找。
+            </p>
+          </div>
+
+          <div className="border border-slate-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-4">
+              <Store className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">提示词市场</h3>
+            <p className="text-slate-600">
+              浏览数千个优质提示词，收藏喜欢的内容，将优秀提示词添加到自己的收藏。
+            </p>
+          </div>
+
+          <div className="border border-slate-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-4">
+              <Upload className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">版本控制</h3>
+            <p className="text-slate-600">
+              为提示词创建版本快照，随时恢复到历史版本，不用担心误操作丢失内容。
+            </p>
+          </div>
+
+          <div className="border border-slate-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-4">
+              <Download className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">导入导出</h3>
+            <p className="text-slate-600">
+              支持 Cherry Studio 格式的导入导出，轻松迁移和备份你的提示词库。
+            </p>
+          </div>
+        </div>
+
+        {/* 快速开始 */}
+        <div className="bg-slate-50 rounded-lg p-8 text-center">
+          <h2 className="text-2xl font-semibold mb-4">准备好开始了吗？</h2>
+          <p className="text-slate-600 mb-6">
+            {session?.user
+              ? '前往我的提示词开始管理你的 AI 提示词库'
+              : '注册账号，开始管理你的 AI 提示词库'}
+          </p>
+          {session?.user ? (
+            <Link href="/prompts">
+              <Button size="lg">前往我的提示词</Button>
+            </Link>
+          ) : (
+            <Link href="/register">
+              <Button size="lg">免费注册</Button>
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
