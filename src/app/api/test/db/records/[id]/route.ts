@@ -10,12 +10,12 @@ function getParams(req: NextRequest) {
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const unauthorized = ensureAuth(_req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
     const { collection } = getParams(_req);
     const col = await getCollection(collection);
     const doc = await col.findOne({ _id: new ObjectId(id) });
@@ -28,12 +28,12 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const unauthorized = ensureAuth(req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
     const body = await req.json();
     const { collection } = getParams(req);
     const col = await getCollection(collection);
@@ -47,12 +47,12 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const unauthorized = ensureAuth(req.headers);
   if (unauthorized) return unauthorized;
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
     const { collection } = getParams(req);
     const col = await getCollection(collection);
     const result = await col.deleteOne({ _id: new ObjectId(id) });

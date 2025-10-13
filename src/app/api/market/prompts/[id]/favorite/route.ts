@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getAuthSession();
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ isFavorited: false });
     }
 
-    const { id } = await context.params;
+    const { id } = context.params;
     const collection = await getCollection<Favorite>('favorites');
     const favorite = await collection.findOne({
       userId: session.user.id,
@@ -30,7 +30,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getAuthSession();
@@ -38,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await context.params;
+    const { id } = context.params;
     const favoritesCollection = await getCollection<Favorite>('favorites');
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
 

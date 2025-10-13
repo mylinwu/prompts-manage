@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getAuthSession();
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const { id } = await context.params;
+    const { id } = context.params;
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
     const marketPrompt = await marketCollection.findOne({ _id: new ObjectId(id) });
 
