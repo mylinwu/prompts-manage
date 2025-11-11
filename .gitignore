@@ -45,3 +45,7 @@ next-env.d.ts
 # doc
 PLAN.md
 IMPLEMENTATION_SUMMARY.md
+
+# ai
+.kiro
+.vscode

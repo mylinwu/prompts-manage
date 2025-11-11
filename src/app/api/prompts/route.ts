@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const group = searchParams.get('group');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const pageSize = Math.min(30, Math.max(20, parseInt(searchParams.get('pageSize') || '30', 10)));
 
     const collection = await getCollection<Prompt>('prompts');
     const query: Record<string, unknown> = { userId: session.user.id };
@@ -20,9 +22,12 @@ export async function GET(request: NextRequest) {
       query.groups = group;
     }
 
+    const total = await collection.countDocuments(query);
     const prompts = await collection
       .find(query)
       .sort({ updatedAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
       .toArray();
 
     const data = prompts.map((p) => ({
@@ -38,7 +43,13 @@ export async function GET(request: NextRequest) {
       updatedAt: p.updatedAt.toISOString(),
     }));
 
-    return NextResponse.json({ prompts: data });
+    return NextResponse.json({ 
+      prompts: data,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    });
   } catch (error) {
     console.error('获取提示词失败:', error);
     return NextResponse.json({ error: '获取提示词失败' }, { status: 500 });

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRequest } from 'ahooks';
+import { useSession } from 'next-auth/react';
 import { PromptData } from '@/types/prompt';
 import { PromptCard } from './PromptCard';
 import { CreatePromptDialog } from './CreatePromptDialog';
@@ -13,16 +14,18 @@ import { PromptDetailDialog } from './PromptDetailDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Upload, Download, Search } from 'lucide-react';
+import { Plus, Upload, Download, Search, Share2 } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
 
 export function PromptsPageClient() {
   const { showAlert, showConfirm } = useAlert();
+  const { data: session } = useSession();
   const [selectedGroup, setSelectedGroup] = useState('全部');
   const [searchText, setSearchText] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [prompts, setPrompts] = useState<PromptData[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
+  const [isSharing, setIsSharing] = useState(false);
 
   // 对话框状态
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -175,6 +178,35 @@ export function PromptsPageClient() {
     }
   };
 
+  const handleShare = async () => {
+    if (!session?.user?.id) {
+      showAlert({ description: '请先登录' });
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      // 1. 刷新缓存
+      const response = await fetch('/api/prompts/rss?invalidate=true', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('刷新缓存失败');
+      }
+
+      // 2. 在新窗口打开 RSS feed
+      const userId = session.user.id;
+      window.open(`/api/prompts/rss?userId=${userId}`, '_blank');
+    } catch (error) {
+      showAlert({ 
+        description: error instanceof Error ? error.message : '操作失败，请稍后重试' 
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   const handleDetail = (prompt: PromptData) => {
     setSelectedPrompt(prompt);
     setShowDetailDialog(true);
@@ -246,6 +278,17 @@ export function PromptsPageClient() {
               <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)} className="hidden sm:flex">
                 <Download className="w-4 h-4 md:mr-1" />
                 <span className="hidden md:inline">导出</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleShare}
+                disabled={isSharing || !session?.user?.id}
+              >
+                <Share2 className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">
+                  {isSharing ? '生成中...' : '分享'}
+                </span>
               </Button>
               <Button size="sm" onClick={() => setShowCreateDialog(true)}>
                 <Plus className="w-4 h-4 md:mr-1" />
