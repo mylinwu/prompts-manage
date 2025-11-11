@@ -64,7 +64,7 @@ export function PromptDetailDialog({ open, onOpenChange, prompt }: PromptDetailD
               </button>
             </div>
             <div className="bg-slate-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <div className="prose prose-sm max-w-none">
+              <div className="markdown-content text-sm">
                 <ReactMarkdown>{prompt.prompt}</ReactMarkdown>
               </div>
             </div>
