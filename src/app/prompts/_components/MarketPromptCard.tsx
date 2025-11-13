@@ -10,9 +10,11 @@ interface MarketPromptCardProps {
   onClick?: () => void;
   onFavorite?: () => void;
   onClone?: () => void;
+  favoriteLoading?: boolean;
+  cloneLoading?: boolean;
 }
 
-export function MarketPromptCard({ prompt, onClick, onFavorite, onClone }: MarketPromptCardProps) {
+export function MarketPromptCard({ prompt, onClick, onFavorite, onClone, favoriteLoading, cloneLoading }: MarketPromptCardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -89,21 +91,29 @@ export function MarketPromptCard({ prompt, onClick, onFavorite, onClone }: Marke
                 prompt.isFavorited
                   ? 'bg-red-50 text-red-600 hover:bg-red-100'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              } ${favoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onFavorite?.();
+                if (!favoriteLoading) {
+                  onFavorite?.();
+                }
               }}
+              disabled={favoriteLoading}
             >
               <Heart className={`w-4 h-4 ${prompt.isFavorited ? 'fill-current' : ''}`} />
               {prompt.favoriteCount}
             </button>
             <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors ${
+                cloneLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
-                onClone?.();
+                if (!cloneLoading) {
+                  onClone?.();
+                }
               }}
+              disabled={cloneLoading}
             >
               <Download className="w-4 h-4" />
               添加到我的

@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
           <header className="border-b bg-white">
@@ -39,7 +39,7 @@ export default function RootLayout({
               </div>
             </div>
           </header>
-          <main className="h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)]">{children}</main>
+          <main className="min-h-[calc(100vh-3.5rem)] md:min-h-[calc(100vh-3rem)]">{children}</main>
         </Providers>
       </body>
     </html>

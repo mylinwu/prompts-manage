@@ -3,6 +3,7 @@
 import { PromptData } from '@/types/prompt';
 import { Edit, MoreVertical, Trash2, FileText, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Badge } from '@/components/ui/badge';
 import { useClickAway } from 'ahooks';
 
@@ -27,10 +28,12 @@ export function PromptCard({
 }: PromptCardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
 
-  useClickAway(() => setShowMenu(false), menuRef);
+  useClickAway(() => setShowMenu(false), [menuRef, menuContainerRef]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -50,12 +53,23 @@ export function PromptCard({
     return () => observer.disconnect();
   }, []);
 
+  // 计算菜单位置
+  useEffect(() => {
+    if (showMenu && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 160, // 160 是菜单宽度
+      });
+    }
+  }, [showMenu]);
+
   const displayText = (prompt.description || prompt.prompt).substring(0, 200);
 
   return (
     <div
       ref={cardRef}
-      className="relative h-full rounded-lg border border-slate-200 bg-white p-3 md:p-4 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="relative h-full rounded-lg border border-slate-200 bg-white p-3 md:p-4 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 overflow-hidden"
       onClick={onClick}
     >
       {isVisible && (
@@ -89,7 +103,7 @@ export function PromptCard({
                 </div>
               )}
               {isMyPrompts && (
-                <div className="relative">
+                <>
                   <button
                     ref={menuRef}
                     className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors"
@@ -100,16 +114,25 @@ export function PromptCard({
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
-                  {showMenu && (
+                  {showMenu && typeof window !== 'undefined' && createPortal(
                     <>
                       <div
-                        className="fixed inset-0 z-[100]"
+                        className="fixed inset-0 z-[9998]"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowMenu(false);
                         }}
                       />
-                      <div className="absolute right-0 mt-1 w-40 rounded-md bg-white shadow-lg border border-slate-200 py-1 z-[101]">
+                      <div
+                        ref={menuContainerRef}
+                        className="fixed w-40 rounded-md bg-white shadow-lg border border-slate-200 py-1 z-[9999]"
+                        style={{
+                          top: `${menuPosition.top}px`,
+                          left: `${menuPosition.left}px`,
+                          opacity: menuPosition.top === 0 ? 0 : 1,
+                          transition: 'opacity 0.1s',
+                        }}
+                      >
                         <button
                           className="w-full px-4 py-2 text-sm text-left hover:bg-slate-100 flex items-center gap-2"
                           onClick={(e) => {
@@ -155,9 +178,10 @@ export function PromptCard({
                           删除
                         </button>
                       </div>
-                    </>
+                    </>,
+                    document.body
                   )}
-                </div>
+                </>
               )}
             </div>
           </div>

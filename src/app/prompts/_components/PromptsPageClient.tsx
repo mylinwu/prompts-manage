@@ -320,27 +320,32 @@ export function PromptsPageClient() {
         </div>
 
         {/* 提示词列表 */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4">
-          {loading ? (
-            <div className="text-center py-20 text-slate-500 text-sm md:text-base">加载中...</div>
-          ) : filteredPrompts.length === 0 ? (
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 relative">
+          {filteredPrompts.length === 0 && !loading ? (
             <div className="text-center py-20 text-slate-500 text-sm md:text-base px-4">
               {searchText ? '没有找到相关提示词' : '暂无提示词，点击创建按钮开始'}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {filteredPrompts.map((prompt) => (
-                <PromptCard
-                  key={prompt.id}
-                  prompt={prompt}
-                  onClick={() => handleDetail(prompt)}
-                  onEdit={() => handleEdit(prompt)}
-                  onDelete={() => handleDelete(prompt)}
-                  onVersion={() => handleVersion(prompt)}
-                  onPublish={() => handlePublish(prompt)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                {filteredPrompts.map((prompt) => (
+                  <PromptCard
+                    key={prompt.id}
+                    prompt={prompt}
+                    onClick={() => handleDetail(prompt)}
+                    onEdit={() => handleEdit(prompt)}
+                    onDelete={() => handleDelete(prompt)}
+                    onVersion={() => handleVersion(prompt)}
+                    onPublish={() => handlePublish(prompt)}
+                  />
+                ))}
+              </div>
+              {loading && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+                  <div className="text-slate-600 text-sm md:text-base">加载中...</div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

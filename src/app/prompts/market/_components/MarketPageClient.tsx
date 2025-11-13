@@ -39,7 +39,7 @@ export function MarketPageClient() {
         params.append('search', searchText);
       }
       params.append('page', pageNum.toString());
-      params.append('limit', '20');
+      params.append('limit', '30');
 
       const url = `/api/market/prompts?${params.toString()}`;
       const response = await fetch(url);
@@ -86,7 +86,7 @@ export function MarketPageClient() {
   );
 
   // 收藏/取消收藏
-  const { run: toggleFavorite } = useRequest(
+  const { run: toggleFavorite, loading: favoriteLoading } = useRequest(
     async (promptId: string) => {
       if (!session?.user) {
         showAlert({ description: '请先登录' });
@@ -123,7 +123,7 @@ export function MarketPageClient() {
   );
 
   // 克隆到我的提示词
-  const { run: clonePrompt } = useRequest(
+  const { run: clonePrompt, loading: cloneLoading } = useRequest(
     async (promptId: string) => {
       if (!session?.user) {
         showAlert({ description: '请先登录' });
@@ -294,6 +294,8 @@ export function MarketPageClient() {
                     onClick={() => handleDetail(prompt)}
                     onFavorite={() => toggleFavorite(prompt.id)}
                     onClone={() => clonePrompt(prompt.id)}
+                    favoriteLoading={favoriteLoading}
+                    cloneLoading={cloneLoading}
                   />
                 ))}
               </div>

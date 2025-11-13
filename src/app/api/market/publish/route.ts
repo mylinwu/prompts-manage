@@ -3,6 +3,7 @@ import { getCollection } from '@/lib/db';
 import { MarketPrompt, Prompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
         }
       );
 
+      // 使市场 API 缓存失效
+      revalidatePath('/api/market/prompts');
+
       return NextResponse.json({
         id: existing._id.toString(),
         message: '提示词已更新到市场',
@@ -78,6 +82,9 @@ export async function POST(request: NextRequest) {
         { _id: new ObjectId(promptId) },
         { $set: { isPublished: true } }
       );
+
+      // 使市场 API 缓存失效
+      revalidatePath('/api/market/prompts');
 
       return NextResponse.json({
         id: result.insertedId.toString(),

@@ -3,6 +3,9 @@ import { getCollection } from '@/lib/db';
 import { Favorite, MarketPrompt } from '@/types/prompt';
 import { NextRequest, NextResponse } from 'next/server';
 
+// 启用 Next.js 缓存，60秒后重新验证
+export const revalidate = 60;
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

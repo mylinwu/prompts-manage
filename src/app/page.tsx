@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getAuthSession } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { FileText, Store, Upload, Download } from 'lucide-react';
+import { FileText, Store, Upload, Download, Share2 } from 'lucide-react';
 
 export default async function Home() {
   const session = await getAuthSession();
@@ -73,6 +73,16 @@ export default async function Home() {
             <h3 className="text-lg md:text-xl font-semibold mb-2">版本控制</h3>
             <p className="text-sm md:text-base text-slate-600">
               为提示词创建版本快照，随时恢复到历史版本，不用担心误操作丢失内容。
+            </p>
+          </div>
+
+          <div className="border border-slate-200 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mb-3 md:mb-4">
+              <Share2 className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <h3 className="text-lg md:text-xl font-semibold mb-2">RSS 订阅分享</h3>
+            <p className="text-sm md:text-base text-slate-600">
+              生成专属 RSS 订阅链接，一键分享你的提示词库。完美兼容 Cherry Studio 订阅功能，实时同步更新。
             </p>
           </div>
 
