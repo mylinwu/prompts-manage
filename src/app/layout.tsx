@@ -31,7 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <header className="border-b bg-white">
+          <header className="border-b bg-white mb-[-1px]">
             <div className="max-w-full flex items-center justify-between h-14 md:h-12 px-3 md:px-4">
               <Navigation />
               <div className="flex items-center gap-2 md:gap-4">
