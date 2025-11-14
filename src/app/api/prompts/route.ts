@@ -1,8 +1,11 @@
 import { getCollection } from '@/lib/db';
 import { Prompt, PromptVersion } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withAuth, getPaginationParams, serializeDocuments, validateBody, ApiError } from '@/lib/api-utils';
+import { withAuth, getPaginationParams, serializeDocuments, validateBody, ApiError, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const createPromptSchema = z.object({
   name: z.string().min(1, '名称不能为空'),
@@ -12,7 +15,8 @@ const createPromptSchema = z.object({
   groups: z.array(z.string()).default([]),
 });
 
-export const GET = withAuth(async (request: NextRequest, { userId }) => {
+export const GET = withAuth(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   const searchParams = request.nextUrl.searchParams;
   const group = searchParams.get('group');
   const { page, pageSize, skip, limit } = getPaginationParams(request, 30, 30);
@@ -41,7 +45,8 @@ export const GET = withAuth(async (request: NextRequest, { userId }) => {
   };
 });
 
-export const POST = withAuth(async (request: NextRequest, { userId }) => {
+export const POST = withAuth(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   // 验证请求体
   const { name, prompt, emoji, description, groups } = await validateBody(
     request,

@@ -1,8 +1,11 @@
 import { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/db';
 import { compare, hash } from 'bcryptjs';
-import { withAuth, validateBody, validateObjectId, ApiError, withRateLimit } from '@/lib/api-utils';
+import { withAuth, validateBody, validateObjectId, ApiError, withRateLimit, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(8, '密码至少 8 个字符'),
@@ -10,7 +13,8 @@ const changePasswordSchema = z.object({
 });
 
 // 限流：每个用户每小时最多 10 次修改密码请求
-export const POST = withAuth(withRateLimit(async (request: NextRequest, { userId }) => {
+export const POST = withAuth(withRateLimit(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   // 验证请求体
   const { oldPassword, newPassword } = await validateBody(request, changePasswordSchema);
 

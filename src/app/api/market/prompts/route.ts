@@ -1,12 +1,16 @@
 import { getCollection } from '@/lib/db';
 import { Favorite, MarketPrompt } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withOptionalAuth, getPaginationParams, serializeDocuments } from '@/lib/api-utils';
+import { withOptionalAuth, getPaginationParams, serializeDocuments, AuthContext } from '@/lib/api-utils';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 // 启用 Next.js 缓存，60秒后重新验证
 export const revalidate = 600;
 
-export const GET = withOptionalAuth(async (request: NextRequest, { userId }) => {
+export const GET = withOptionalAuth(async (request: NextRequest, context: Partial<AuthContext>) => {
+  const { userId } = context;
   const searchParams = request.nextUrl.searchParams;
   const group = searchParams.get('group');
   const search = searchParams.get('search');

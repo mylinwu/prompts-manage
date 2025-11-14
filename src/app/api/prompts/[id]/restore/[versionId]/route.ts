@@ -1,12 +1,15 @@
 import { getCollection } from '@/lib/db';
 import { Prompt, PromptVersion } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocument, ApiError } from '@/lib/api-utils';
+import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocument, ApiError, AuthContext } from '@/lib/api-utils';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 export const POST = withAuth(
   async (
     request: NextRequest,
-    context: { userId: string; params: Promise<{ id: string; versionId: string }> }
+    context: AuthContext & { params?: Promise<{ id: string; versionId: string }> }
   ) => {
     const { id, versionId } = await getRouteParams(context);
     const promptId = validateObjectId(id, '提示词ID');

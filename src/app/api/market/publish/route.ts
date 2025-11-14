@@ -3,15 +3,19 @@ import { MarketPrompt, Prompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { withAuth, validateBody, validateObjectId, ApiError, withRateLimit } from '@/lib/api-utils';
+import { withAuth, validateBody, validateObjectId, ApiError, withRateLimit, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const publishSchema = z.object({
   promptId: z.string().min(1, '提示词ID不能为空'),
 });
 
 // 限流：每个用户每天最多 30 次发布请求
-export const POST = withAuth(withRateLimit(async (request: NextRequest, { userId }) => {
+export const POST = withAuth(withRateLimit(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   // 验证请求体
   const { promptId } = await validateBody(request, publishSchema);
   const objectId = validateObjectId(promptId, '提示词ID');

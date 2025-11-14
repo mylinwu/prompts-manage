@@ -113,12 +113,15 @@ export function createPaginatedResponse<T>(
 /**
  * 认证中间件 - 要求用户必须登录
  */
-export function withAuth<T, TContext = Record<string, unknown>>(
-  handler: ApiHandler<T, TContext>
+export function withAuth<T = any>(
+  handler: (
+    request: NextRequest,
+    context: AuthContext & { params?: Promise<any> }
+  ) => Promise<T>
 ) {
   return async (
     request: NextRequest,
-    context?: TContext
+    context?: { params?: Promise<any> }
   ): Promise<NextResponse> => {
     try {
       const session = await getAuthSession();
@@ -136,7 +139,7 @@ export function withAuth<T, TContext = Record<string, unknown>>(
 
       const result = await handler(request, {
         ...authContext,
-        ...(context || ({} as TContext)),
+        params: context?.params,
       });
 
       return createSuccessResponse(result);
@@ -158,15 +161,15 @@ export function withAuth<T, TContext = Record<string, unknown>>(
 /**
  * 可选认证中间件 - 用户可以未登录访问
  */
-export function withOptionalAuth<T, TContext = Record<string, unknown>>(
+export function withOptionalAuth<T = any>(
   handler: (
     request: NextRequest,
-    context: Partial<AuthContext> & TContext
+    context: Partial<AuthContext> & { params?: Promise<any> }
   ) => Promise<T>
 ) {
   return async (
     request: NextRequest,
-    context?: TContext
+    context?: { params?: Promise<any> }
   ): Promise<NextResponse> => {
     try {
       const session = await getAuthSession();
@@ -180,7 +183,7 @@ export function withOptionalAuth<T, TContext = Record<string, unknown>>(
 
       const result = await handler(request, {
         ...authContext,
-        ...(context || ({} as TContext)),
+        params: context?.params,
       });
 
       return createSuccessResponse(result);
@@ -285,7 +288,17 @@ export function ensureOwnership(
  */
 export async function getRouteParams<T extends Record<string, string>>(
   context: { params: Promise<T> }
+): Promise<T>;
+export async function getRouteParams<T extends Record<string, string>>(
+  context: { params?: Promise<T> }
+): Promise<T>;
+
+export async function getRouteParams<T extends Record<string, string>>(
+  context: { params?: Promise<T> }
 ): Promise<T> {
+  if (!context.params) {
+    throw new Error('路由参数缺失');
+  }
   return await context.params;
 }
 

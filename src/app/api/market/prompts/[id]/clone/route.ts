@@ -1,10 +1,13 @@
 import { getCollection } from '@/lib/db';
 import { MarketPrompt, Prompt } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withAuth, validateObjectId, getRouteParams, ApiError } from '@/lib/api-utils';
+import { withAuth, validateObjectId, getRouteParams, ApiError, AuthContext } from '@/lib/api-utils';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 export const POST = withAuth(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '市场提示词ID');
 

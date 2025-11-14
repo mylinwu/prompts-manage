@@ -2,10 +2,13 @@ import { getCollection } from '@/lib/db';
 import { Favorite, MarketPrompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
 import { NextRequest } from 'next/server';
-import { withOptionalAuth, withAuth, getRouteParams, withRateLimit } from '@/lib/api-utils';
+import { withOptionalAuth, withAuth, getRouteParams, withRateLimit, AuthContext } from '@/lib/api-utils';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 export const GET = withOptionalAuth(
-  async (request: NextRequest, context: { userId?: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: Partial<AuthContext> & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
 
     // 未登录用户返回未收藏
@@ -25,7 +28,7 @@ export const GET = withOptionalAuth(
 
 // 限流：每个用户每小时最多 60 次收藏操作
 export const POST = withAuth(withRateLimit(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     
     const favoritesCollection = await getCollection<Favorite>('favorites');

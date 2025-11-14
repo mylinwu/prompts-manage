@@ -1,14 +1,18 @@
 import { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/db';
-import { withAuth, validateBody, validateObjectId, ApiError } from '@/lib/api-utils';
+import { withAuth, validateBody, validateObjectId, ApiError, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const updateProfileSchema = z.object({
   name: z.string().optional(),
   image: z.string().url().optional(),
 });
 
-export const POST = withAuth(async (request: NextRequest, { userId }) => {
+export const POST = withAuth(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   // 验证请求体
   const { name } = await validateBody(request, updateProfileSchema);
 

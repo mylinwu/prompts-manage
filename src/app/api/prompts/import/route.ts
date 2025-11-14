@@ -1,8 +1,11 @@
 import { getCollection } from '@/lib/db';
 import { AgentFormat, Prompt } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withAuth, validateBody, withRateLimit } from '@/lib/api-utils';
+import { withAuth, validateBody, withRateLimit, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const importSchema = z.object({
   agents: z.array(
@@ -18,7 +21,8 @@ const importSchema = z.object({
 });
 
 // 限流：每个用户每小时最多 10 次导入请求
-export const POST = withAuth(withRateLimit(async (request: NextRequest, { userId }) => {
+export const POST = withAuth(withRateLimit(async (request: NextRequest, context: AuthContext) => {
+  const { userId } = context;
   // 验证请求体
   const { agents } = await validateBody(request, importSchema);
 

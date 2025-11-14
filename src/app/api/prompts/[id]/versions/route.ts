@@ -1,15 +1,18 @@
 import { getCollection } from '@/lib/db';
 import { Prompt, PromptVersion } from '@/types/prompt';
 import { NextRequest } from 'next/server';
-import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocuments, validateBody, ApiError, withRateLimit } from '@/lib/api-utils';
+import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocuments, validateBody, ApiError, withRateLimit, AuthContext } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const createVersionSchema = z.object({
   description: z.string().default(''),
 });
 
 export const GET = withAuth(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '提示词ID');
 
@@ -36,7 +39,7 @@ export const GET = withAuth(
 
 // 限流：每个用户每小时最多 60 次创建版本请求
 export const POST = withAuth(withRateLimit(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '提示词ID');
     const { description } = await validateBody(request, createVersionSchema);

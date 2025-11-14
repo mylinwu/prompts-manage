@@ -9,8 +9,12 @@ import {
   serializeDocument,
   validateBody,
   ApiError,
+  AuthContext,
 } from '@/lib/api-utils';
 import { z } from 'zod';
+
+// 强制动态渲染，因为使用了认证相关的 headers
+export const dynamic = 'force-dynamic';
 
 const updatePromptSchema = z.object({
   name: z.string().optional(),
@@ -21,7 +25,7 @@ const updatePromptSchema = z.object({
 });
 
 export const GET = withAuth(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '提示词ID');
 
@@ -40,7 +44,7 @@ export const GET = withAuth(
 );
 
 export const PATCH = withAuth(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '提示词ID');
 
@@ -73,7 +77,7 @@ export const PATCH = withAuth(
 );
 
 export const DELETE = withAuth(
-  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+  async (request: NextRequest, context: AuthContext & { params?: Promise<{ id: string }> }) => {
     const { id } = await getRouteParams(context);
     const objectId = validateObjectId(id, '提示词ID');
 
