@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 const schema = z.object({
 	name: z.string().min(1, '请输入姓名').max(64),
@@ -25,18 +26,11 @@ export default function RegisterPage() {
 	const onSubmit = async (values: FormValues) => {
 		setLoading(true);
 		try {
-			const res = await fetch('/api/auth/register', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(values),
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				showAlert({ description: data.error || '注册失败' });
-				return;
-			}
+			await api.post('/auth/register', values);
 			await signIn('credentials', { email: values.email, password: values.password, redirect: false });
 			router.push('/account/settings');
+		} catch (error) {
+			// 错误已由 api-client 处理
 		} finally {
 			setLoading(false);
 		}

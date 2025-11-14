@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 const schema = z.object({
 	name: z.string().min(1, '请输入姓名').max(64, '姓名过长'),
@@ -31,18 +32,11 @@ export default function UpdateProfileForm({ initialName }: UpdateProfileFormProp
 	const onSubmit = async (values: FormValues) => {
 		setSubmitting(true);
 		try {
-			const res = await fetch('/api/account/update-profile', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(values),
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				showAlert({ description: data.error || '修改失败' });
-				return;
-			}
+			await api.post('/account/update-profile', values);
 			showAlert({ description: '资料已更新' });
 			router.refresh();
+		} catch (error) {
+			// 错误已由 api-client 处理
 		} finally {
 			setSubmitting(false);
 		}

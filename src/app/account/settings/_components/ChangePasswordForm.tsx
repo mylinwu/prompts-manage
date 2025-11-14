@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 const schema = z.object({
 	oldPassword: z.string().min(8, '至少 8 位'),
@@ -21,18 +22,11 @@ export default function ChangePasswordForm() {
 	const onSubmit = async (values: FormValues) => {
 		setSubmitting(true);
 		try {
-			const res = await fetch('/api/account/change-password', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(values),
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				showAlert({ description: data.error || '修改失败' });
-				return;
-			}
+			await api.post('/account/change-password', values);
 			reset();
 			showAlert({ description: '密码已更新' });
+		} catch (error) {
+			// 错误已由 api-client 处理
 		} finally {
 			setSubmitting(false);
 		}

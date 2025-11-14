@@ -1,50 +1,39 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { Favorite, MarketPrompt } from '@/types/prompt';
 import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { withOptionalAuth, withAuth, getRouteParams, withRateLimit } from '@/lib/api-utils';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ isFavorited: false });
+export const GET = withOptionalAuth(
+  async (request: NextRequest, context: { userId?: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+
+    // 未登录用户返回未收藏
+    if (!context.userId) {
+      return { isFavorited: false };
     }
 
-    const { id } = await context.params;
     const collection = await getCollection<Favorite>('favorites');
     const favorite = await collection.findOne({
-      userId: session.user.id,
+      userId: context.userId,
       marketPromptId: id,
     });
 
-    return NextResponse.json({ isFavorited: !!favorite });
-  } catch (error) {
-    console.error('检查收藏状态失败:', error);
-    return NextResponse.json({ error: '检查收藏状态失败' }, { status: 500 });
+    return { isFavorited: !!favorite };
   }
-}
+);
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
-
-    const { id } = await context.params;
+// 限流：每个用户每小时最多 60 次收藏操作
+export const POST = withAuth(withRateLimit(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    
     const favoritesCollection = await getCollection<Favorite>('favorites');
     const marketCollection = await getCollection<MarketPrompt>('market_prompts');
 
     // 检查是否已收藏
     const existing = await favoritesCollection.findOne({
-      userId: session.user.id,
+      userId: context.userId,
       marketPromptId: id,
     });
 
@@ -55,11 +44,11 @@ export async function POST(
         { _id: new ObjectId(id) },
         { $inc: { favoriteCount: -1 } }
       );
-      return NextResponse.json({ isFavorited: false });
+      return { isFavorited: false, message: '已取消收藏' };
     } else {
       // 添加收藏
       await favoritesCollection.insertOne({
-        userId: session.user.id,
+        userId: context.userId,
         marketPromptId: id,
         createdAt: new Date(),
       } as Favorite);
@@ -67,11 +56,14 @@ export async function POST(
         { _id: new ObjectId(id) },
         { $inc: { favoriteCount: 1 } }
       );
-      return NextResponse.json({ isFavorited: true });
+      return { isFavorited: true, message: '收藏成功' };
     }
-  } catch (error) {
-    console.error('收藏操作失败:', error);
-    return NextResponse.json({ error: '收藏操作失败' }, { status: 500 });
+  }, {
+    windowMs: 60 * 60 * 1000, // 1 小时
+    max: 60,                   // 最多 60 次
+    keyType: 'user',           // 按用户限流
+    identifier: 'market-favorite',
+    message: '收藏操作过于频繁，请稍后再试'
   }
-}
+));
 

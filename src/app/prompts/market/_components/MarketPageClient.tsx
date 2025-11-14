@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 export function MarketPageClient() {
   const { data: session } = useSession();
@@ -41,15 +42,15 @@ export function MarketPageClient() {
       params.append('page', pageNum.toString());
       params.append('limit', '30');
 
-      const url = `/api/market/prompts?${params.toString()}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('获取市场提示词失败');
+      const url = `/market/prompts?${params.toString()}`;
+      const data = await api.get(url);
 
-      const data = await response.json();
       return { data, append };
     },
     {
       manual: true,
+      cacheKey: `market-prompts-${selectedGroup || 'all'}-${searchText || ''}`,
+      staleTime: 5 * 60 * 1000, // 5分钟缓存
       onSuccess: ({ data, append }) => {
         if (append) {
           setPrompts((prev) => {
@@ -71,13 +72,12 @@ export function MarketPageClient() {
   // 获取市场分组列表
   useRequest(
     async () => {
-      const response = await fetch('/api/market/prompts/groups');
-      if (!response.ok) throw new Error('获取分组失败');
-
-      const data = await response.json();
+      const data = await api.get('/market/prompts/groups');
       return data;
     },
     {
+      cacheKey: 'market-groups',
+      staleTime: 10 * 60 * 1000, // 10分钟缓存
       onSuccess: (data) => {
         setGroups(data.groups);
         setGroupCounts({ '全部': data.total, ...data.groupCounts });
@@ -93,13 +93,7 @@ export function MarketPageClient() {
         return;
       }
 
-      const response = await fetch(`/api/market/prompts/${promptId}/favorite`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error('操作失败');
-
-      return response.json();
+      return await api.post(`/market/prompts/${promptId}/favorite`);
     },
     {
       manual: true,
@@ -131,16 +125,7 @@ export function MarketPageClient() {
         return;
       }
 
-      const response = await fetch(`/api/market/prompts/${promptId}/clone`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '克隆失败');
-      }
-
-      return response.json();
+      return await api.post(`/market/prompts/${promptId}/clone`);
     },
     {
       manual: true,
@@ -157,8 +142,10 @@ export function MarketPageClient() {
   const resetAndFetch = useCallback(() => {
     setPage(1);
     setPrompts([]);
+    setHasMore(true);
+    // 清除相关缓存
     fetchPrompts(1, false);
-  }, [fetchPrompts]);
+  }, [fetchPrompts, selectedGroup, searchText]);
 
   // 加载更多
   const loadMore = useCallback(() => {
@@ -172,7 +159,7 @@ export function MarketPageClient() {
   // 监听分组和搜索变化
   useEffect(() => {
     resetAndFetch();
-  }, [selectedGroup, searchText]);
+  }, [selectedGroup, searchText, resetAndFetch]);
 
   // 触底加载
   useEffect(() => {

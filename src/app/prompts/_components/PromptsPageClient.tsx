@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRequest } from 'ahooks';
 import { useSession } from 'next-auth/react';
 import { PromptData } from '@/types/prompt';
@@ -16,6 +16,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Upload, Download, Search, Share2 } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
+
+const promptsCache: Record<string, { data: any; expiry: number }> = {};
+
+const invalidatePromptsCache = () => {
+  Object.keys(promptsCache).forEach((key) => {
+    delete promptsCache[key];
+  });
+};
 
 export function PromptsPageClient() {
   const { showAlert, showConfirm } = useAlert();
@@ -25,6 +34,11 @@ export function PromptsPageClient() {
   const [searchInput, setSearchInput] = useState('');
   const [prompts, setPrompts] = useState<PromptData[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
+  const [groupCounts, setGroupCounts] = useState<Record<string, number>>({});
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
 
   // 对话框状态
@@ -36,62 +50,126 @@ export function PromptsPageClient() {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null);
 
-  // 获取提示词列表
-  const { loading, run: fetchPrompts, refresh } = useRequest(
-    async () => {
-      const url = selectedGroup && selectedGroup !== '全部'
-        ? `/api/prompts?group=${encodeURIComponent(selectedGroup)}`
-        : '/api/prompts';
+  // 获取提示词列表（分页 + 缓存）
+  const { loading, run: fetchPrompts } = useRequest(
+    async (pageNum: number, append: boolean = false) => {
+      const params = new URLSearchParams();
+      if (selectedGroup && selectedGroup !== '全部') {
+        params.append('group', selectedGroup);
+      }
+      params.append('page', pageNum.toString());
+      params.append('pageSize', '30');
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('获取提示词失败');
+      const cacheKey = `prompts:${selectedGroup || '全部'}:${pageNum}`;
+      const now = Date.now();
+      const cached = promptsCache[cacheKey];
+      if (cached && cached.expiry > now) {
+        return { data: cached.data, append };
+      }
 
-      const data = await response.json();
-      return data.prompts;
+      const url = `/prompts?${params.toString()}`;
+      const data = await api.get(url);
+      promptsCache[cacheKey] = {
+        data,
+        expiry: now + 5 * 60 * 1000,
+      };
+
+      return { data, append };
     },
     {
-      onSuccess: (data) => {
-        setPrompts(data);
+      manual: true,
+      onSuccess: ({ data, append }) => {
+        if (append) {
+          setPrompts((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const newPrompts = data.prompts.filter((p: PromptData) => !existingIds.has(p.id));
+            return [...prev, ...newPrompts];
+          });
+        } else {
+          setPrompts(data.prompts);
+        }
+        setTotal(data.total);
+        setHasMore(data.page < data.totalPages);
       },
-      refreshDeps: [selectedGroup],
     }
   );
 
-  // 获取分组列表
+  // 获取分组列表（基于所有数据的统计）
   useRequest(
     async () => {
-      const response = await fetch('/api/prompts/groups');
-      if (!response.ok) throw new Error('获取分组失败');
-
-      const data = await response.json();
-      return data.groups;
+      const data = await api.get('/prompts/groups');
+      return data;
     },
     {
       onSuccess: (data) => {
-        setGroups(data);
+        setGroups(data.groups);
+        setGroupCounts({ '全部': data.total, ...data.groupCounts });
+        setTotal(data.total);
       },
-      refreshDeps: [prompts.length],
     }
   );
 
-  // 使用 refresh 而不是 fetchPrompts
-  const handleRefresh = () => {
-    refresh();
-  };
+  // 重置并加载第一页
+  const resetAndFetch = useCallback(() => {
+    setPage(1);
+    setPrompts([]);
+    setHasMore(true);
+    const cacheKeyPrefix = `prompts:${selectedGroup || '全部'}:`;
+    Object.keys(promptsCache).forEach((key) => {
+      if (key.startsWith(cacheKeyPrefix)) {
+        delete promptsCache[key];
+      }
+    });
+    fetchPrompts(1, false);
+  }, [fetchPrompts, selectedGroup]);
+
+  // 分组变化时重新加载
+  useEffect(() => {
+    resetAndFetch();
+  }, [selectedGroup, resetAndFetch]);
+
+  // 加载更多
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPrompts(nextPage, true);
+    }
+  }, [loading, hasMore, page, fetchPrompts]);
+
+  // 触底加载
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, loading, loadMore]);
 
   // 删除提示词
   const { run: deletePrompt } = useRequest(
     async (id: string) => {
-      const response = await fetch(`/api/prompts/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('删除失败');
+      await api.delete(`/prompts/${id}`);
     },
     {
       manual: true,
       onSuccess: () => {
-        handleRefresh();
+        invalidatePromptsCache();
+        resetAndFetch();
       },
       onError: (error) => {
         showAlert({ description: error.message });
@@ -102,24 +180,14 @@ export function PromptsPageClient() {
   // 发布到市场
   const { run: publishToMarket } = useRequest(
     async (promptId: string) => {
-      const response = await fetch('/api/market/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptId }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '发布失败');
-      }
-
-      return response.json();
+      return await api.post('/market/publish', { promptId });
     },
     {
       manual: true,
       onSuccess: (data) => {
         showAlert({ description: data.message });
-        handleRefresh();
+        invalidatePromptsCache();
+        resetAndFetch();
       },
       onError: (error) => {
         showAlert({ description: error.message });
@@ -187,13 +255,7 @@ export function PromptsPageClient() {
     setIsSharing(true);
     try {
       // 1. 刷新缓存
-      const response = await fetch('/api/prompts/rss?invalidate=true', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('刷新缓存失败');
-      }
+      await api.post('/prompts/rss?invalidate=true');
 
       // 2. 在新窗口打开 RSS feed
       const userId = session.user.id;
@@ -212,15 +274,12 @@ export function PromptsPageClient() {
     setShowDetailDialog(true);
   };
 
-  const groupCounts = useMemo(() => {
-    const counts: Record<string, number> = { '全部': prompts.length };
-    prompts.forEach((p) => {
-      p.groups.forEach((g) => {
-        counts[g] = (counts[g] || 0) + 1;
-      });
-    });
-    return counts;
-  }, [prompts]);
+  const currentTotal = useMemo(() => {
+    if (selectedGroup === '全部') {
+      return groupCounts['全部'] || 0;
+    }
+    return groupCounts[selectedGroup] || 0;
+  }, [groupCounts, selectedGroup]);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3rem)]">
@@ -268,7 +327,7 @@ export function PromptsPageClient() {
               <h1 className="text-lg md:text-xl font-semibold truncate">
                 {searchText ? '搜索结果' : selectedGroup}
               </h1>
-              <Badge variant="secondary" className="text-xs">{filteredPrompts.length}</Badge>
+              <Badge variant="secondary" className="text-xs">{currentTotal}</Badge>
             </div>
             <div className="flex items-center gap-1 md:gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="hidden sm:flex">
@@ -340,6 +399,12 @@ export function PromptsPageClient() {
                   />
                 ))}
               </div>
+              <div ref={observerTarget} className="h-10 flex items-center justify-center mt-4">
+                {loading && <div className="text-slate-500 text-sm">加载中...</div>}
+                {!hasMore && prompts.length > 0 && (
+                  <div className="text-slate-400 text-xs md:text-sm">已加载全部 {currentTotal} 条数据</div>
+                )}
+              </div>
               {loading && (
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
                   <div className="text-slate-600 text-sm md:text-base">加载中...</div>
@@ -354,7 +419,10 @@ export function PromptsPageClient() {
       <CreatePromptDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        onSuccess={handleRefresh}
+        onSuccess={() => {
+          invalidatePromptsCache();
+          resetAndFetch();
+        }}
         availableGroups={groups}
       />
 
@@ -362,7 +430,10 @@ export function PromptsPageClient() {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         prompt={selectedPrompt}
-        onSuccess={handleRefresh}
+        onSuccess={() => {
+          invalidatePromptsCache();
+          resetAndFetch();
+        }}
         availableGroups={groups}
         onVersionHistory={(promptId) => {
           setShowEditDialog(false);
@@ -374,13 +445,19 @@ export function PromptsPageClient() {
         open={showVersionDialog}
         onOpenChange={setShowVersionDialog}
         promptId={selectedPrompt?.id || null}
-        onRestore={handleRefresh}
+        onRestore={() => {
+          invalidatePromptsCache();
+          resetAndFetch();
+        }}
       />
 
       <ImportDialog
         open={showImportDialog}
         onOpenChange={setShowImportDialog}
-        onSuccess={handleRefresh}
+        onSuccess={() => {
+          invalidatePromptsCache();
+          resetAndFetch();
+        }}
       />
 
       <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} />

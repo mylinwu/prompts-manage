@@ -1,32 +1,25 @@
-import { getAuthSession } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/db';
 import { Prompt } from '@/types/prompt';
-import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/api-utils';
 
-export async function GET() {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+export const GET = withAuth(async (request: NextRequest, { userId }) => {
+  const collection = await getCollection<Prompt>('prompts');
+  const prompts = await collection.find({ userId }).toArray();
 
-    const collection = await getCollection<Prompt>('prompts');
-    const prompts = await collection.find({ userId: session.user.id }).toArray();
-
-    // 提取所有唯一的分组
-    const groupsSet = new Set<string>();
-    prompts.forEach((prompt) => {
-      prompt.groups.forEach((group) => {
-        if (group) groupsSet.add(group);
-      });
+  // 统计分组数量
+  const groupCounts: Record<string, number> = {};
+  prompts.forEach((prompt) => {
+    prompt.groups.forEach((group) => {
+      if (group) {
+        groupCounts[group] = (groupCounts[group] || 0) + 1;
+      }
     });
+  });
 
-    const groups = Array.from(groupsSet).sort();
+  const groups = Object.keys(groupCounts).sort();
+  const total = prompts.length;
 
-    return NextResponse.json({ groups });
-  } catch (error) {
-    console.error('获取分组失败:', error);
-    return NextResponse.json({ error: '获取分组失败' }, { status: 500 });
-  }
-}
+  return { groups, groupCounts, total };
+});
 

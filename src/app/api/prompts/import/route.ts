@@ -1,47 +1,56 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { AgentFormat, Prompt } from '@/types/prompt';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { withAuth, validateBody, withRateLimit } from '@/lib/api-utils';
+import { z } from 'zod';
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+const importSchema = z.object({
+  agents: z.array(
+    z.object({
+      id: z.string().optional(), // id 是可选的，导入时可能没有
+      name: z.string(),
+      prompt: z.string(),
+      emoji: z.string().optional(),
+      description: z.string().optional(),
+      group: z.array(z.string()).optional(),
+    })
+  ).min(1, '导入数据不能为空'),
+});
 
-    const body = await request.json();
-    const { agents } = body;
+// 限流：每个用户每小时最多 10 次导入请求
+export const POST = withAuth(withRateLimit(async (request: NextRequest, { userId }) => {
+  // 验证请求体
+  const { agents } = await validateBody(request, importSchema);
 
-    if (!Array.isArray(agents) || agents.length === 0) {
-      return NextResponse.json({ error: '导入数据格式错误' }, { status: 400 });
-    }
+  const collection = await getCollection<Prompt>('prompts');
+  const now = new Date();
 
-    const collection = await getCollection<Prompt>('prompts');
-    const now = new Date();
+  // 转换为 Prompt 格式
+  const newPrompts: Omit<Prompt, '_id'>[] = agents.map((agent) => ({
+    userId,
+    name: agent.name,
+    prompt: agent.prompt,
+    emoji: agent.emoji || '',
+    description: agent.description || '',
+    groups: agent.group || [],
+    isPublished: false,
+    createdAt: now,
+    updatedAt: now,
+  }));
 
-    const newPrompts: Omit<Prompt, '_id'>[] = agents.map((agent: AgentFormat) => ({
-      userId: session.user.id,
-      name: agent.name,
-      prompt: agent.prompt,
-      emoji: agent.emoji || '',
-      description: agent.description || '',
-      groups: agent.group || [],
-      isPublished: false,
-      createdAt: now,
-      updatedAt: now,
-    }));
+  // 批量插入
+  const result = await collection.insertMany(newPrompts as Prompt[]);
 
-    const result = await collection.insertMany(newPrompts as Prompt[]);
-
-    return NextResponse.json({
-      success: true,
-      count: result.insertedCount,
-      message: `成功导入 ${result.insertedCount} 个提示词`,
-    });
-  } catch (error) {
-    console.error('导入提示词失败:', error);
-    return NextResponse.json({ error: '导入提示词失败' }, { status: 500 });
-  }
-}
+  return {
+    success: true,
+    count: result.insertedCount,
+    message: `成功导入 ${result.insertedCount} 个提示词`,
+  };
+}, {
+  windowMs: 60 * 60 * 1000, // 1 小时
+  max: 10,                   // 最多 10 次
+  keyType: 'user',           // 按用户限流
+  identifier: 'import-prompts',
+  message: '导入请求过于频繁，请稍后再试'
+}));
 

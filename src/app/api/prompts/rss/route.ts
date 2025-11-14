@@ -1,7 +1,7 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { Prompt } from '@/types/prompt';
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth, createSuccessResponse, createErrorResponse, ApiError } from '@/lib/api-utils';
 
 // RSS Feed 输出格式
 interface RSSFeedItem {
@@ -61,7 +61,7 @@ function invalidateCache(userId: string): void {
   rssCache.delete(key);
 }
 
-// GET 端点：返回 RSS Feed
+// GET 端点：返回 RSS Feed（公开 API）
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -69,13 +69,13 @@ export async function GET(request: NextRequest) {
 
     // 验证 userId 参数
     if (!userId) {
-      return NextResponse.json({ error: '缺少 userId 参数' }, { status: 400 });
+      throw new ApiError(400, '缺少 userId 参数', 'MISSING_USER_ID');
     }
 
     // 检查缓存
     const cachedData = getCache(userId);
     if (cachedData) {
-      return NextResponse.json(cachedData);
+      return createSuccessResponse(cachedData);
     }
 
     // 从数据库查询用户的提示词
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // 如果没有找到数据
     if (!prompts || prompts.length === 0) {
-      return NextResponse.json({ error: '未找到数据' }, { status: 404 });
+      throw new ApiError(404, '未找到数据', 'NO_DATA_FOUND');
     }
 
     // 生成 RSS feed 格式的数据
@@ -97,42 +97,34 @@ export async function GET(request: NextRequest) {
       prompt: p.prompt,
       emoji: p.emoji,
       description: p.description,
-      group: p.groups, // 将 groups 映射为 group
+      group: p.groups,
     }));
 
     // 存储到缓存
     setCache(userId, rssFeed);
 
-    return NextResponse.json(rssFeed);
+    return createSuccessResponse(rssFeed);
   } catch (error) {
+    if (error instanceof ApiError) {
+      return createErrorResponse(error);
+    }
     console.error('获取 RSS feed 失败:', error);
-    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+    return createErrorResponse('服务器错误', 500);
   }
 }
 
 // POST 端点：清除缓存
-export async function POST(request: NextRequest) {
-  try {
-    // 验证用户身份
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+export const POST = withAuth(async (request: NextRequest, { userId }) => {
+  const searchParams = request.nextUrl.searchParams;
+  const invalidate = searchParams.get('invalidate');
 
-    const searchParams = request.nextUrl.searchParams;
-    const invalidate = searchParams.get('invalidate');
-
-    // 验证 invalidate 参数
-    if (invalidate !== 'true') {
-      return NextResponse.json({ error: '缺少 invalidate 参数' }, { status: 400 });
-    }
-
-    // 清除当前用户的缓存
-    invalidateCache(session.user.id);
-
-    return NextResponse.json({ success: true, message: '缓存已清除' });
-  } catch (error) {
-    console.error('清除缓存失败:', error);
-    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  // 验证 invalidate 参数
+  if (invalidate !== 'true') {
+    throw new ApiError(400, '缺少 invalidate 参数', 'MISSING_INVALIDATE_PARAM');
   }
-}
+
+  // 清除当前用户的缓存
+  invalidateCache(userId);
+
+  return { success: true, message: '缓存已清除' };
+});

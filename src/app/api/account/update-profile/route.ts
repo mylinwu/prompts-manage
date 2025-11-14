@@ -1,26 +1,27 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/db';
-import { ObjectId } from 'mongodb';
-import { getAuthSession } from '@/lib/auth';
+import { withAuth, validateBody, validateObjectId, ApiError } from '@/lib/api-utils';
+import { z } from 'zod';
 
-const schema = z.object({
-	name: z.string().min(1, '请输入姓名').max(64, '姓名过长'),
+const updateProfileSchema = z.object({
+  name: z.string().optional(),
+  image: z.string().url().optional(),
 });
 
-export async function POST(req: Request) {
-	const session = await getAuthSession();
-	if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export const POST = withAuth(async (request: NextRequest, { userId }) => {
+  // 验证请求体
+  const { name } = await validateBody(request, updateProfileSchema);
 
-	const body = await req.json().catch(() => null);
-	const parse = schema.safeParse(body);
-	if (!parse.success) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
-	const { name } = parse.data;
+  // 查询用户
+  const users = await getCollection<any>('users');
+  const user = await users.findOne({ _id: validateObjectId(userId) });
 
-	const users = await getCollection<any>('users');
-	const user = await users.findOne({ _id: new ObjectId(session.user.id) });
-	if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!user) {
+    throw new ApiError(404, '用户不存在', 'USER_NOT_FOUND');
+  }
 
-	await users.updateOne({ _id: user._id }, { $set: { name } });
-	return NextResponse.json({ ok: true, name });
-}
+  // 更新用户信息
+  await users.updateOne({ _id: user._id }, { $set: { name } });
+
+  return { success: true, name, message: '个人信息更新成功' };
+});

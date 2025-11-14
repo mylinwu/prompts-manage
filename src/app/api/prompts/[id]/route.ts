@@ -1,133 +1,99 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { Prompt } from '@/types/prompt';
-import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import {
+  withAuth,
+  validateObjectId,
+  ensureOwnership,
+  getRouteParams,
+  serializeDocument,
+  validateBody,
+  ApiError,
+} from '@/lib/api-utils';
+import { z } from 'zod';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+const updatePromptSchema = z.object({
+  name: z.string().optional(),
+  prompt: z.string().optional(),
+  emoji: z.string().optional(),
+  description: z.string().optional(),
+  groups: z.array(z.string()).optional(),
+});
 
-    const { id } = await context.params;
+export const GET = withAuth(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    const objectId = validateObjectId(id, '提示词ID');
+
     const collection = await getCollection<Prompt>('prompts');
-    const prompt = await collection.findOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const prompt = await collection.findOne({ _id: objectId });
 
     if (!prompt) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
     }
 
-    return NextResponse.json({
-      id: prompt._id.toString(),
-      userId: prompt.userId,
-      name: prompt.name,
-      prompt: prompt.prompt,
-      emoji: prompt.emoji,
-      description: prompt.description,
-      groups: prompt.groups,
-      isPublished: prompt.isPublished,
-      createdAt: prompt.createdAt.toISOString(),
-      updatedAt: prompt.updatedAt.toISOString(),
-    });
-  } catch (error) {
-    console.error('获取提示词失败:', error);
-    return NextResponse.json({ error: '获取提示词失败' }, { status: 500 });
+    // 验证权限
+    ensureOwnership(prompt.userId, context.userId, '提示词');
+
+    return serializeDocument(prompt);
   }
-}
+);
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+export const PATCH = withAuth(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    const objectId = validateObjectId(id, '提示词ID');
 
-    const { id } = await context.params;
-    const body = await request.json();
-    const { name, prompt, emoji, description, groups } = body;
+    // 验证请求体
+    const updateData = await validateBody(request, updatePromptSchema);
 
     const collection = await getCollection<Prompt>('prompts');
-    
-    const existing = await collection.findOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const existing = await collection.findOne({ _id: objectId });
 
     if (!existing) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
     }
 
-    const updateData: Partial<Prompt> & { updatedAt: Date } = {
-      updatedAt: new Date(),
-    };
+    // 验证权限
+    ensureOwnership(existing.userId, context.userId, '提示词');
 
-    if (name !== undefined) updateData.name = name;
-    if (prompt !== undefined) updateData.prompt = prompt;
-    if (emoji !== undefined) updateData.emoji = emoji;
-    if (description !== undefined) updateData.description = description;
-    if (groups !== undefined) updateData.groups = groups;
-
+    // 更新数据
     await collection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updateData }
+      { _id: objectId },
+      { $set: { ...updateData, updatedAt: new Date() } }
     );
 
-    const updated = await collection.findOne({ _id: new ObjectId(id) });
-
-    return NextResponse.json({
-      id: updated!._id.toString(),
-      userId: updated!.userId,
-      name: updated!.name,
-      prompt: updated!.prompt,
-      emoji: updated!.emoji,
-      description: updated!.description,
-      groups: updated!.groups,
-      isPublished: updated!.isPublished,
-      createdAt: updated!.createdAt.toISOString(),
-      updatedAt: updated!.updatedAt.toISOString(),
-    });
-  } catch (error) {
-    console.error('更新提示词失败:', error);
-    return NextResponse.json({ error: '更新提示词失败' }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
+    const updated = await collection.findOne({ _id: objectId });
+    if (!updated) {
+      throw new ApiError(500, '更新失败', 'UPDATE_FAILED');
     }
 
-    const { id } = await context.params;
+    return serializeDocument(updated);
+  }
+);
+
+export const DELETE = withAuth(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    const objectId = validateObjectId(id, '提示词ID');
+
     const collection = await getCollection<Prompt>('prompts');
-    const result = await collection.deleteOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const existing = await collection.findOne({ _id: objectId });
+
+    if (!existing) {
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
+    }
+
+    // 验证权限
+    ensureOwnership(existing.userId, context.userId, '提示词');
+
+    const result = await collection.deleteOne({ _id: objectId });
 
     if (result.deletedCount === 0) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(500, '删除失败', 'DELETE_FAILED');
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('删除提示词失败:', error);
-    return NextResponse.json({ error: '删除提示词失败' }, { status: 500 });
+    return { success: true, message: '删除成功' };
   }
-}
+);
 

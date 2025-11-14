@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useRequest } from 'ahooks';
 import { Upload } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 interface ImportDialogProps {
   open: boolean;
@@ -20,18 +21,7 @@ export function ImportDialog({ open, onOpenChange, onSuccess }: ImportDialogProp
 
   const { loading, run: importPrompts } = useRequest(
     async () => {
-      const response = await fetch('/api/prompts/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agents: fileContent }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '导入失败');
-      }
-
-      return response.json();
+      return await api.post('/prompts/import', { agents: fileContent });
     },
     {
       manual: true,

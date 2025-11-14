@@ -11,6 +11,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { useRequest } from 'ahooks';
 import { cn } from '@/lib/utils';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 interface CreatePromptDialogProps {
   open: boolean;
@@ -30,18 +31,7 @@ export function CreatePromptDialog({ open, onOpenChange, onSuccess, availableGro
 
   const { loading, run: createPrompt } = useRequest(
     async () => {
-      const response = await fetch('/api/prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, prompt, emoji, description, groups: selectedGroups }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '创建失败');
-      }
-
-      return response.json();
+      return await api.post('/prompts', { name, prompt, emoji, description, groups: selectedGroups });
     },
     {
       manual: true,

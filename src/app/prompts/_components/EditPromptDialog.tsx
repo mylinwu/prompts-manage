@@ -13,6 +13,7 @@ import { useRequest } from 'ahooks';
 import { History } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api-client';
 
 interface EditPromptDialogProps {
   open: boolean;
@@ -47,19 +48,7 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
   const { loading, run: updatePrompt } = useRequest(
     async () => {
       if (!prompt) return;
-
-      const response = await fetch(`/api/prompts/${prompt.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, prompt: promptText, emoji, description, groups: selectedGroups }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '更新失败');
-      }
-
-      return response.json();
+      return await api.patch(`/prompts/${prompt.id}`, { name, prompt: promptText, emoji, description, groups: selectedGroups });
     },
     {
       manual: true,
@@ -76,19 +65,7 @@ export function EditPromptDialog({ open, onOpenChange, prompt, onSuccess, availa
   const { loading: creatingVersion, run: createVersion } = useRequest(
     async () => {
       if (!prompt) return;
-
-      const response = await fetch(`/api/prompts/${prompt.id}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: versionDescription }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '创建版本失败');
-      }
-
-      return response.json();
+      return await api.post(`/prompts/${prompt.id}/versions`, { description: versionDescription });
     },
     {
       manual: true,

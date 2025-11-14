@@ -1,45 +1,41 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { Prompt, PromptVersion } from '@/types/prompt';
-import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocument, ApiError } from '@/lib/api-utils';
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string; versionId: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+export const POST = withAuth(
+  async (
+    request: NextRequest,
+    context: { userId: string; params: Promise<{ id: string; versionId: string }> }
+  ) => {
+    const { id, versionId } = await getRouteParams(context);
+    const promptId = validateObjectId(id, '提示词ID');
+    const versionObjectId = validateObjectId(versionId, '版本ID');
 
-    const { id, versionId } = await context.params;
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
-    const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const prompt = await promptsCollection.findOne({ _id: promptId });
 
     if (!prompt) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
     }
+
+    ensureOwnership(prompt.userId, context.userId, '提示词');
 
     // 获取版本数据
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
     const version = await versionsCollection.findOne({
-      _id: new ObjectId(versionId),
+      _id: versionObjectId,
       promptId: id,
     });
 
     if (!version) {
-      return NextResponse.json({ error: '版本不存在' }, { status: 404 });
+      throw new ApiError(404, '版本不存在', 'VERSION_NOT_FOUND');
     }
 
     // 恢复提示词内容
     await promptsCollection.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: promptId },
       {
         $set: {
           name: version.name,
@@ -49,23 +45,15 @@ export async function POST(
       }
     );
 
-    const updated = await promptsCollection.findOne({ _id: new ObjectId(id) });
+    const updated = await promptsCollection.findOne({ _id: promptId });
+    if (!updated) {
+      throw new ApiError(500, '恢复失败', 'RESTORE_FAILED');
+    }
 
-    return NextResponse.json({
-      id: updated!._id.toString(),
-      userId: updated!.userId,
-      name: updated!.name,
-      prompt: updated!.prompt,
-      emoji: updated!.emoji,
-      description: updated!.description,
-      groups: updated!.groups,
-      isPublished: updated!.isPublished,
-      createdAt: updated!.createdAt.toISOString(),
-      updatedAt: updated!.updatedAt.toISOString(),
-    });
-  } catch (error) {
-    console.error('恢复版本失败:', error);
-    return NextResponse.json({ error: '恢复版本失败' }, { status: 500 });
+    return {
+      ...serializeDocument(updated),
+      message: `已恢复到版本 ${version.version}`,
+    };
   }
-}
+);
 

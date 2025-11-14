@@ -8,6 +8,7 @@ import { PromptVersionData } from '@/types/prompt';
 import { useRequest } from 'ahooks';
 import { RotateCcw, Plus, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAlert } from '@/components/AlertProvider';
+import api from '@/lib/api-client';
 
 interface VersionHistoryDialogProps {
   open: boolean;
@@ -26,11 +27,7 @@ export function VersionHistoryDialog({ open, onOpenChange, promptId, onRestore }
   const { loading: loadingVersions, run: fetchVersions } = useRequest(
     async () => {
       if (!promptId) return [];
-
-      const response = await fetch(`/api/prompts/${promptId}/versions`);
-      if (!response.ok) throw new Error('获取版本历史失败');
-
-      const data = await response.json();
+      const data = await api.get(`/prompts/${promptId}/versions`);
       return data.versions;
     },
     {
@@ -44,19 +41,7 @@ export function VersionHistoryDialog({ open, onOpenChange, promptId, onRestore }
   const { loading: creatingVersion, run: createVersion } = useRequest(
     async () => {
       if (!promptId) return;
-
-      const response = await fetch(`/api/prompts/${promptId}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: versionDescription }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '创建版本失败');
-      }
-
-      return response.json();
+      return await api.post(`/prompts/${promptId}/versions`, { description: versionDescription });
     },
     {
       manual: true,
@@ -74,17 +59,7 @@ export function VersionHistoryDialog({ open, onOpenChange, promptId, onRestore }
   const { loading: restoring, run: restoreVersion } = useRequest(
     async (versionId: string) => {
       if (!promptId) return;
-
-      const response = await fetch(`/api/prompts/${promptId}/restore/${versionId}`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '恢复版本失败');
-      }
-
-      return response.json();
+      return await api.post(`/prompts/${promptId}/restore/${versionId}`);
     },
     {
       manual: true,

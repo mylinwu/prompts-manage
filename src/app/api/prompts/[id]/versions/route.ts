@@ -1,79 +1,55 @@
-import { getAuthSession } from '@/lib/auth';
 import { getCollection } from '@/lib/db';
 import { Prompt, PromptVersion } from '@/types/prompt';
-import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { withAuth, validateObjectId, ensureOwnership, getRouteParams, serializeDocuments, validateBody, ApiError, withRateLimit } from '@/lib/api-utils';
+import { z } from 'zod';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+const createVersionSchema = z.object({
+  description: z.string().default(''),
+});
 
-    const { id } = await context.params;
+export const GET = withAuth(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    const objectId = validateObjectId(id, '提示词ID');
+
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
-    const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const prompt = await promptsCollection.findOne({ _id: objectId });
 
     if (!prompt) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
     }
 
+    ensureOwnership(prompt.userId, context.userId, '提示词');
+
+    // 获取版本列表
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
     const versions = await versionsCollection
       .find({ promptId: id })
       .sort({ version: -1 })
       .toArray();
 
-    const data = versions.map((v) => ({
-      id: v._id.toString(),
-      promptId: v.promptId,
-      version: v.version,
-      name: v.name,
-      prompt: v.prompt,
-      description: v.description,
-      createdAt: v.createdAt.toISOString(),
-      createdBy: v.createdBy,
-    }));
-
-    return NextResponse.json({ versions: data });
-  } catch (error) {
-    console.error('获取版本历史失败:', error);
-    return NextResponse.json({ error: '获取版本历史失败' }, { status: 500 });
+    return { versions: serializeDocuments(versions) };
   }
-}
+);
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
-
-    const { id } = await context.params;
-    const body = await request.json();
-    const { description } = body;
+// 限流：每个用户每小时最多 60 次创建版本请求
+export const POST = withAuth(withRateLimit(
+  async (request: NextRequest, context: { userId: string; params: Promise<{ id: string }> }) => {
+    const { id } = await getRouteParams(context);
+    const objectId = validateObjectId(id, '提示词ID');
+    const { description } = await validateBody(request, createVersionSchema);
 
     // 验证提示词所有权
     const promptsCollection = await getCollection<Prompt>('prompts');
-    const prompt = await promptsCollection.findOne({
-      _id: new ObjectId(id),
-      userId: session.user.id,
-    });
+    const prompt = await promptsCollection.findOne({ _id: objectId });
 
     if (!prompt) {
-      return NextResponse.json({ error: '提示词不存在' }, { status: 404 });
+      throw new ApiError(404, '提示词不存在', 'PROMPT_NOT_FOUND');
     }
+
+    ensureOwnership(prompt.userId, context.userId, '提示词');
 
     // 获取当前最大版本号
     const versionsCollection = await getCollection<PromptVersion>('prompt_versions');
@@ -92,19 +68,23 @@ export async function POST(
       prompt: prompt.prompt,
       description: description || `版本 ${newVersion}`,
       createdAt: new Date(),
-      createdBy: session.user.id,
+      createdBy: context.userId,
     };
 
     const result = await versionsCollection.insertOne(versionData as PromptVersion);
 
-    return NextResponse.json({
+    return {
       id: result.insertedId.toString(),
       ...versionData,
       createdAt: versionData.createdAt.toISOString(),
-    });
-  } catch (error) {
-    console.error('创建版本快照失败:', error);
-    return NextResponse.json({ error: '创建版本快照失败' }, { status: 500 });
+      message: `版本 ${newVersion} 创建成功`,
+    };
+  }, {
+    windowMs: 60 * 60 * 1000, // 1 小时
+    max: 60,                   // 最多 60 次
+    keyType: 'user',           // 按用户限流
+    identifier: 'create-version',
+    message: '创建版本请求过于频繁，请稍后再试'
   }
-}
+));
 
